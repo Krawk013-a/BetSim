@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSim - Aviator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #1e1e2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        header {
+            background-color: #2a2a40;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo h1 {
+            color: #4CAF50;
+            font-size: 24px;
+        }
+        
+        .logo span {
+            color: #FFC107;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .balance {
+            background-color: rgba(76, 175, 80, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-right: 15px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .username {
+            color: #ddd;
+            margin-right: 15px;
+        }
+        
+        .back-btn {
+            background-color: transparent;
+            border: 1px solid #FFC107;
+            color: #FFC107;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background-color: #FFC107;
+            color: #1e1e2e;
+        }
+        
+        .main-content {
+            padding: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: #2a2a40;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-title {
+            font-size: 24px;
+            color: #FFC107;
+            display: flex;
+            align-items: center;
+        }
+        
+        .game-title span {
+            font-size: 28px;
+            margin-right: 10px;
+        }
+        
+        .game-canvas-container {
+            background-color: #2a2a40;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            height: 400px; /* Ajuste conforme necessário */
+        }
+        
+        .game-canvas {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sky {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1a1a2e, #2a2a40);
+        }
+        
+        .ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 20%;
+            background-color: #333350;
+        }
+        
+        .airplane {
+            position: absolute;
+            left: 10%; /* Posição inicial */
+            bottom: 20%; /* Posição inicial (acima do chão) */
+            font-size: 36px;
+            transform-origin: center;
+            transform: rotate(0deg);
+            /* A animação real será feita via JavaScript, mas a transição CSS pode dar um efeito suave */
+            transition: all 0.05s linear; /* Transição mais rápida para o movimento */
+        }
+        
+        .multiplier {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            font-weight: bold;
+            color: #FFC107;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            opacity: 0.9;
+        }
+        
+        .crashed {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            display: none; /* Inicialmente oculto */
+        }
+        
+        .controls-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap; /* Para responsividade em telas menores */
+        }
+        
+        .bet-controls, .previous-rounds {
+            flex: 1;
+            min-width: 300px; /* Garante que não fiquem muito estreitos */
+            background-color: #2a2a40;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .control-title {
+            font-size: 18px;
+            color: #FFC107;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+        
+        .bet-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .input-group label {
+            color: #ddd;
+            font-size: 14px;
+        }
+        
+        .input-group input {
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #333350;
+            border: 1px solid #444;
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        .auto-cashout-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .auto-cashout-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+             cursor: pointer;
+        }
+        
+        .bet-btn, .cashout-btn {
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .bet-btn {
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+        }
+        
+        .bet-btn:hover:not(.disabled) {
+            background-color: #45a049;
+        }
+        
+        .cashout-btn {
+            background-color: #FFC107;
+            color: #1e1e2e;
+            border: none;
+            display: none; /* Inicialmente oculto */
+        }
+        
+        .cashout-btn:hover:not(.disabled) {
+            background-color: #e6ac00;
+        }
+        
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important; /* Garante que o cursor mude */
+        }
+        
+        .previous-rounds-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 150px; /* Limita a altura e adiciona scroll */
+            overflow-y: auto;
+             padding-right: 10px; /* Espaço para a barra de scroll */
+        }
+        
+        .round-item {
+            width: 60px; /* Tamanho do círculo */
+            height: 60px; /* Tamanho do círculo */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0; /* Impede que encolham */
+        }
+        
+        .round-win {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid #4CAF50; /* Adiciona uma borda sutil */
+        }
+        
+        .round-lose {
+            background-color: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+             border: 1px solid #ff6b6b; /* Adiciona uma borda sutil */
+        }
+        
+        .result-modal {
+            display: none; /* Inicialmente oculto */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 10;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .result-content {
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .result-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .result-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .result-message {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+        
+        .result-btn {
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+             font-size: 16px;
+        }
+        
+        .result-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .win .result-icon, .win .result-title {
+            color: #4CAF50;
+        }
+        
+        .lose .result-icon, .lose .result-title {
+            color: #ff6b6b;
+        }
+         @media (max-width: 768px) {
+            .controls-container {
+                flex-direction: column;
+            }
+         }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Bet<span>Sim</span></h1>
+        </div>
+        
+        <div class="user-info">
+            <div class="balance" id="userBalance">R$ 0,00</div>
+            <div class="username" id="username">Usuário</div>
+            <button class="back-btn" id="backBtn">Voltar</button>
+        </div>
+    </header>
+    
+    <div class="main-content">
+        <div class="game-header">
+            <div class="game-title">
+                <span>✈️</span> Aviator
+            </div>
+        </div>
+        
+        <div class="game-canvas-container">
+            <div class="game-canvas">
+                <div class="sky"></div>
+                <div class="ground"></div>
+                <div class="airplane" id="airplane">✈️</div>
+                <div class="multiplier" id="multiplierDisplay">1.00x</div>
+                <div class="crashed" id="crashedDisplay">CRASHED!</div>
+            </div>
+        </div>
+        
+        <div class="controls-container">
+            <div class="bet-controls">
+                <h3 class="control-title">Faça sua aposta</h3>
+                <div class="bet-form">
+                    <div class="input-group">
+                        <label for="betAmount">Valor da Aposta (R$):</label>
+                        <input type="number" id="betAmount" min="1" step="1" value="10">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="autoCashoutValue">Auto-Cashout (Multiplicador):</label>
+                        <div class="auto-cashout-container">
+                            <input type="checkbox" id="autoCashoutEnabled">
+                            <input type="number" id="autoCashoutValue" min="1.1" step="0.1" value="2.0">
+                        </div>
+                    </div>
+                    
+                    <button class="bet-btn" id="placeBetBtn">Apostar</button>
+                    <button class="cashout-btn" id="cashoutBtn">Sacar</button>
+                </div>
+            </div>
+            
+            <div class="previous-rounds">
+                <h3 class="control-title">Rodadas Anteriores</h3>
+                <ul class="previous-rounds-list" id="previousRoundsList">
+                    </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="result-modal" id="resultModal">
+        <div class="result-content" id="resultContent">
+            <div class="result-icon" id="resultIcon">✈️</div>
+            <div class="result-title" id="resultTitle">Você Ganhou!</div>
+            <div class="result-message" id="resultMessage">Você sacou em 2.5x e ganhou R$ 25,00!</div>
+            <button class="result-btn" id="newGameBtn">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        // Verificar se o usuário está logado ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const userBalance = localStorage.getItem('userBalance') || '0.00';
+            
+            if (!currentUser) {
+                // Redirecionar para a página de login se não estiver logado
+                window.location.href = 'index.html'; // Ajuste para o nome do seu arquivo de login
+                return;
+            }
+            
+            // Exibir informações do usuário
+            document.getElementById('username').textContent = currentUser;
+            document.getElementById('userBalance').textContent = `R$ ${parseFloat(userBalance).toFixed(2)}`;
+            
+            // Carregar rodadas anteriores ou gerar aleatórias se não existirem
+            loadPreviousRounds();
+
+            // Inicializar o estado dos botões e inputs
+            resetGameState();
+        });
+        
+        // Botão de voltar para o dashboard
+        document.getElementById('backBtn').addEventListener('click', function() {
+            // Antes de voltar, garantir que o jogo não está ativo para evitar estados estranhos
+            if (gameActive) {
+                // Opcional: mostrar um alerta "Jogo em andamento, tem certeza?"
+                if (!confirm("Um jogo está em andamento. Tem certeza que deseja sair? Sua aposta será perdida se você não tiver sacado.")) {
+                    return; // Cancela a volta se o usuário não confirmar
+                }
+                 // Se o usuário confirmar e ainda não sacou, a aposta é perdida
+                 if (!hasUserCashedOut) {
+                     // Não precisa fazer nada com o saldo aqui, pois já foi subtraído ao apostar
+                     addTransaction('Perda - Aviator', -currentBet, 'Saiu durante o jogo'); // Registrar a perda
+                 }
+                 clearInterval(gameInterval); // Parar o loop do jogo
+                 gameActive = false; // Marcar jogo como inativo
+            }
+             window.location.href = 'dashboard.html'; // Ajuste para o nome do seu arquivo do dashboard
+        });
+        
+        // Variáveis do jogo
+        let gameActive = false;
+        let currentBet = 0;
+        let currentMultiplier = 1.00;
+        let gameInterval;
+        let crashPoint; // O multiplicador no qual o avião vai "cair"
+        let hasUserCashedOut = false; // Indica se o usuário clicou em sacar
+        let autoCashoutEnabled = false;
+        let autoCashoutValue = 2.0; // Multiplicador para o auto-cashout
+        // Usaremos localStorage para persistir as rodadas anteriores (simulação)
+        const previousRoundsKey = 'aviatorPreviousRounds';
+        const maxPreviousRounds = 10; // Limite de rodadas a serem exibidas/armazenadas
+        
+        // Carregar ou gerar rodadas anteriores
+        function loadPreviousRounds() {
+             const storedRounds = localStorage.getItem(previousRoundsKey);
+             let rounds = storedRounds ? JSON.parse(storedRounds) : [];
+
+             // Se não houver rodadas armazenadas, gerar algumas aleatoriamente para a demonstração
+             if (rounds.length === 0) {
+                for (let i = 0; i < maxPreviousRounds; i++) {
+                    rounds.push(generateRandomMultiplier());
+                }
+                // Opcional: salvar as rodadas geradas inicialmente
+                 localStorage.setItem(previousRoundsKey, JSON.stringify(rounds));
+             }
+
+             // Limitar o número de rodadas exibidas
+             updatePreviousRoundsList(rounds.slice(0, maxPreviousRounds));
+        }
+        
+        // Gerar multiplicador aleatório para demonstração
+        function generateRandomMultiplier() {
+            // Esta é uma fórmula simplificada para simular o comportamento do Aviator
+            // Em um sistema real, haveria algoritmos mais complexos e verdadeiramente aleatórios/imprevisíveis
+            // A distribuição da probabilidade de crash em diferentes multiplicadores
+            
+            const randomValue = Math.random();
+
+            // Pequena chance de crashar muito cedo (abaixo de 1.2x)
+            if (randomValue < 0.1) { // 10% de chance
+                 return 1 + Math.random() * 0.19; // Entre 1.00 e 1.19
+            }
+            // Chance maior de crashar entre 1.2x e 2.0x
+            else if (randomValue < 0.6) { // 50% de chance (0.6 - 0.1)
+                return 1.2 + Math.random() * 0.8; // Entre 1.20 e 2.00
+            }
+             // Chance moderada de crashar entre 2.0x e 5.0x
+            else if (randomValue < 0.9) { // 30% de chance (0.9 - 0.6)
+                 return 2.0 + Math.random() * 3.0; // Entre 2.00 e 5.00
+            }
+            // Pequena chance de crashar acima de 5.0x
+            else { // 10% de chance (1.0 - 0.9)
+                 return 5.0 + Math.random() * 20.0; // Entre 5.00 e 25.00 (pode ajustar o limite superior)
+            }
+        }
+        
+        // Atualizar lista de rodadas anteriores no HTML
+        function updatePreviousRoundsList(roundsToShow) {
+            const list = document.getElementById('previousRoundsList');
+            list.innerHTML = ''; // Limpa a lista atual
+            
+            roundsToShow.forEach(multiplier => {
+                const item = document.createElement('li');
+                // Determina a classe CSS com base no valor do multiplicador
+                item.className = parseFloat(multiplier) < 2.0 ? 'round-item round-lose' : 'round-item round-win'; // Exemplo: considerar 'vitória' acima de 2x
+                item.textContent = `${parseFloat(multiplier).toFixed(2)}x`; // Formata para 2 casas decimais
+                list.appendChild(item);
+            });
+        }
+
+        // Adicionar uma nova rodada à lista (chamada no final de cada jogo)
+        function addNewRoundToHistory(multiplier) {
+             const storedRounds = localStorage.getItem(previousRoundsKey);
+             let rounds = storedRounds ? JSON.parse(storedRounds) : [];
+
+             rounds.unshift(multiplier); // Adiciona o novo multiplicador no início
+             
+             // Limitar o histórico
+             if (rounds.length > maxPreviousRounds) {
+                 rounds = rounds.slice(0, maxPreviousRounds);
+             }
+
+             localStorage.setItem(previousRoundsKey, JSON.stringify(rounds)); // Salva no localStorage
+             updatePreviousRoundsList(rounds); // Atualiza a lista na UI
+        }
+
+        // Resetar o estado visual do jogo para a próxima rodada
+        function resetGameState() {
+             gameActive = false;
+             currentBet = 0;
+             currentMultiplier = 1.00;
+             hasUserCashedOut = false;
+             clearInterval(gameInterval); // Garante que qualquer intervalo anterior seja parado
+
+            document.getElementById('multiplierDisplay').textContent = '1.00x';
+            document.getElementById('crashedDisplay').style.display = 'none';
+            document.getElementById('airplane').textContent = '✈️'; // Resetar emoji do avião
+            document.getElementById('airplane').style.transition = 'all 0.5s ease'; // Transição suave para o reset
+            document.getElementById('airplane').style.left = '10%';
+            document.getElementById('airplane').style.bottom = '20%';
+            document.getElementById('airplane').style.transform = 'rotate(0deg)';
+
+            document.getElementById('placeBetBtn').style.display = 'block';
+            document.getElementById('cashoutBtn').style.display = 'none';
+            document.getElementById('betAmount').disabled = false;
+            document.getElementById('autoCashoutEnabled').disabled = false;
+            document.getElementById('autoCashoutValue').disabled = false;
+
+            document.getElementById('placeBetBtn').classList.remove('disabled');
+            document.getElementById('cashoutBtn').classList.add('disabled'); // Desabilita o botão de sacar
+        }
+
+
+        // Iniciar jogo ao clicar no botão de aposta
+        document.getElementById('placeBetBtn').addEventListener('click', function() {
+            if (gameActive || this.classList.contains('disabled')) return; // Impede múltiplas apostas ou se desabilitado
+            
+            const betAmountInput = document.getElementById('betAmount');
+            const betAmount = parseFloat(betAmountInput.value);
+            let userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+            
+            autoCashoutEnabled = document.getElementById('autoCashoutEnabled').checked;
+            autoCashoutValue = parseFloat(document.getElementById('autoCashoutValue').value);
+            
+            // Validar aposta e auto-cashout
+            if (isNaN(betAmount) || betAmount <= 0) {
+                alert('Por favor, insira um valor de aposta válido.');
+                return;
+            }
+
+             if (autoCashoutEnabled && (isNaN(autoCashoutValue) || autoCashoutValue < 1.1)) {
+                 alert('Por favor, insira um valor de Auto-Cashout válido (mínimo 1.1).');
+                 return;
+             }
+            
+            if (betAmount > userBalance) {
+                alert('Saldo insuficiente para realizar esta aposta.');
+                return;
+            }
+            
+            // Subtrair a aposta do saldo (é subtraído no início do jogo)
+            userBalance -= betAmount;
+            localStorage.setItem('userBalance', userBalance.toString());
+            document.getElementById('userBalance').textContent = `R$ ${userBalance.toFixed(2)}`;
+            
+            // Registrar transação de aposta
+            addTransaction('Aposta - Aviator', -betAmount, `Aposta de R$ ${betAmount.toFixed(2)}`);
+            
+            // Inicializar variáveis do jogo para a nova rodada
+            gameActive = true;
+            currentBet = betAmount;
+            currentMultiplier = 1.00;
+            hasUserCashedOut = false;
+            
+            // Determinar ponto de crash para esta rodada
+            crashPoint = determineCrashPoint();
+            console.log("Próximo crash em:", crashPoint.toFixed(2) + 'x'); // Para debug
+
+            // Resetar alguns elementos visuais para o início da rodada
+             document.getElementById('multiplierDisplay').textContent = '1.00x';
+             document.getElementById('crashedDisplay').style.display = 'none';
+             document.getElementById('airplane').textContent = '✈️'; // Voltar emoji do avião
+             document.getElementById('airplane').style.transition = 'all 0.05s linear'; // Define a transição para o voo
+
+            // Atualizar interface dos botões e inputs
+            document.getElementById('placeBetBtn').style.display = 'none';
+            document.getElementById('cashoutBtn').style.display = 'block';
+             document.getElementById('cashoutBtn').classList.remove('disabled'); // Habilita o botão de sacar
+
+            document.getElementById('betAmount').disabled = true;
+            document.getElementById('autoCashoutEnabled').disabled = true;
+            document.getElementById('autoCashoutValue').disabled = true;
+
+            // Iniciar o loop do jogo
+            startGameLoop();
+        });
+        
+        // Determinar ponto de crash (função já fornecida, pode ser ajustada)
+        function determineCrashPoint() {
+             const randomValue = Math.random();
+             let point;
+
+             if (randomValue < 0.1) { // 10% chance < 1.2x
+                 point = 1 + Math.random() * 0.19;
+             } else if (randomValue < 0.6) { // 50% chance 1.2x to 2.0x
+                 point = 1.2 + Math.random() * 0.8;
+             } else if (randomValue < 0.9) { // 30% chance 2.0x to 5.0x
+                 point = 2.0 + Math.random() * 3.0;
+             } else { // 10% chance > 5.0x
+                 point = 5.0 + Math.random() * 20.0;
+             }
+             
+             // Garantir que o ponto mínimo é 1.01 (avião sempre "decola" um pouco)
+             return Math.max(1.01, point);
+        }
+        
+        // Iniciar o loop principal do jogo (animação e lógica)
+        function startGameLoop() {
+            const airplane = document.getElementById('airplane');
+            const multiplierDisplay = document.getElementById('multiplierDisplay');
+            const crashedDisplay = document.getElementById('crashedDisplay');
+            
+            let startTime = Date.now(); // Tempo de início da rodada
+            const fps = 60; // Frames por segundo para a animação
+            const interval = 1000 / fps; // Intervalo entre cada frame
+            
+            // Resetar a transição do avião para o movimento real
+            airplane.style.transition = `all ${interval / 1000}s linear`;
+
+            gameInterval = setInterval(function() {
+                // Calcular o tempo decorrido
+                const elapsedSeconds = (Date.now() - startTime) / 1000;
+                
+                // Calcular o multiplicador. A curva de crescimento é crucial para a simulação.
+                // Esta é uma função de exemplo (exponencial simplificada):
+                // Multiplicador = 1 + (tempo_em_segundos * fator_velocidade)^fator_curva
+                const speedFactor = 0.5; // Quão rápido o multiplicador aumenta com o tempo
+                const curveFactor = 1.2; // Quão curva é a aceleração (maior valor = mais rápido o crescimento acelera)
+                currentMultiplier = 1 + Math.pow(elapsedSeconds * speedFactor, curveFactor);
+
+                // Limitar o multiplicador para evitar números absurdamente altos (opcional, mas realista)
+                 currentMultiplier = Math.min(currentMultiplier, 1000); // Limite arbitrário de 1000x
+
+                // Atualizar display do multiplicador
+                 if (currentMultiplier < 2.0) {
+                      multiplierDisplay.style.color = '#FFC107'; // Amarelo
+                 } else if (currentMultiplier < 10.0) {
+                      multiplierDisplay.style.color = '#4CAF50'; // Verde
+                 } else {
+                      multiplierDisplay.style.color = '#00BCD4'; // Azul/Ciano para multiplicadores altos
+                 }
+                multiplierDisplay.textContent = currentMultiplier.toFixed(2) + 'x';
+                
+                // Animar o avião (posição e rotação)
+                // Ajuste as fórmulas para a animação para que fiquem mais suaves e realistas
+                const maxTranslateX = 60; // Movimento horizontal máximo percentual
+                const maxTranslateY = 60; // Movimento vertical máximo percentual (para cima)
+                const maxRotation = 30; // Rotação máxima em graus
+                
+                const progress = Math.min(1, elapsedSeconds / (crashPoint / speedFactor)); // Progresso em relação ao crash point simulado
+                
+                const xPos = 10 + (progress * maxTranslateX); // Move da esquerda para a direita
+                const yPos = 20 + (progress * maxTranslateY * Math.sin(progress * Math.PI)); // Sobe e curva suavemente (exemplo)
+                const rotation = progress * maxRotation; // Gira conforme sobe
+
+                // Interpolar suavemente as posições
+                airplane.style.left = `${airplane.offsetLeft / airplane.parentElement.offsetWidth * 100 + (xPos - airplane.offsetLeft / airplane.parentElement.offsetWidth * 100) * 0.1}%`;
+                airplane.style.bottom = `${airplane.offsetBottom / airplane.parentElement.offsetHeight * 100 + (yPos - airplane.offsetBottom / airplane.parentElement.offsetHeight * 100) * 0.1}%`;
+                 // Interpolar suavemente a rotação
+                 const currentRotation = parseFloat(airplane.style.transform.replace('rotate(', '').replace('deg)', '') || '0');
+                 airplane.style.transform = `rotate(${currentRotation + (rotation - currentRotation) * 0.1}deg)`;
+
+
+                // Verificar auto cashout se não tiver sacado ainda
+                if (autoCashoutEnabled && currentMultiplier >= autoCashoutValue && !hasUserCashedOut) {
+                    cashout(); // Realiza o saque automático
+                }
+                
+                // Verificar se atingiu o ponto de crash E se o jogo ainda está ativo
+                // A condição `&& gameActive` é importante para não crashar APÓS o usuário já ter sacado
+                if (currentMultiplier >= crashPoint && gameActive) {
+                    // Crash!
+                    gameActive = false; // Marcar jogo como inativo imediatamente
+                    clearInterval(gameInterval); // Parar o loop
+                    
+                    // Animação de crash
+                    crashedDisplay.textContent = `${crashPoint.toFixed(2)}x`; // Exibe o multiplicador que crashou
+                    crashedDisplay.style.display = 'block';
+                    airplane.textContent = '💥'; // Mudar emoji para explosão
+                    airplane.style.transition = 'none'; // Remove transição para a "explosão" ser instantânea/repentina
+
+                    // Adicionar o ponto de crash (resultado da rodada) ao histórico
+                    addNewRoundToHistory(crashPoint);
+                    
+                    // Resetar interface e verificar se o jogador perdeu (não sacou)
+                    document.getElementById('cashoutBtn').style.display = 'none'; // Oculta o botão de sacar
+                    document.getElementById('cashoutBtn').classList.add('disabled'); // Garante que está desabilitado
+
+
+                    // Se o jogador *não* fez cashout ANTES do crash, ele perdeu a aposta
+                    if (!hasUserCashedOut) {
+                         // A aposta já foi subtraída no início, não precisa subtrair novamente
+                         // Apenas mostrar a mensagem de perda
+                         // Mostrar o modal de resultado após um pequeno delay
+                         setTimeout(() => {
+                             showResult(false); // Mostrar modal de perda
+                             resetGameState(); // Preparar para a próxima rodada
+                         }, 1500); // Delay para ver o "crash"
+                    } else {
+                        // Se o jogador *já* sacou, ele ganhou. O ganho foi calculado e adicionado no cashout().
+                        // O modal de ganho já foi mostrado no cashout().
+                        // Apenas preparar para a próxima rodada
+                        setTimeout(() => {
+                             resetGameState(); // Preparar para a próxima rodada
+                         }, 1500); // Delay antes de resetar após um ganho (opcional)
+                    }
+                }
+            }, interval); // Intervalo de atualização do jogo
+        }
+        
+        // Função de cashout
+        document.getElementById('cashoutBtn').addEventListener('click', function() {
+            // Só permite sacar se o jogo estiver ativo e o usuário ainda não tiver sacado
+            if (!gameActive || hasUserCashedOut || this.classList.contains('disabled')) return;
+            
+            cashout(); // Executa a lógica de saque
+        });
+        
+        function cashout() {
+            hasUserCashedOut = true; // Marca que o usuário sacou
+            gameActive = false; // O jogo termina para este usuário (embora continue para outros numa simulação real)
+            clearInterval(gameInterval); // Para o loop do jogo para este usuário
+            
+            // Calcular o ganho
+            const winAmount = currentBet * currentMultiplier;
+            
+            // Atualizar saldo
+            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+            const newBalance = currentBalance + winAmount; // Adiciona o ganho ao saldo
+            localStorage.setItem('userBalance', newBalance.toString());
+            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+            
+            // Registrar transação de ganho
+            addTransaction('Ganho - Aviator', winAmount, `Sacou em ${currentMultiplier.toFixed(2)}x (Aposta: R$ ${currentBet.toFixed(2)})`);
+            
+            // Atualizar interface
+            document.getElementById('cashoutBtn').style.display = 'none'; // Oculta o botão de sacar
+            document.getElementById('cashoutBtn').classList.add('disabled'); // Garante que está desabilitado
+
+             // Adicionar o multiplicador onde o usuário sacou ao histórico (opcional, pode adicionar o crash point também)
+             // Para este simulador, vamos adicionar o ponto onde ele sacou
+             addNewRoundToHistory(currentMultiplier);
+
+            // Mostrar o modal de resultado (vitória)
+            showResult(true);
+
+            // Resetar o estado do jogo para a próxima rodada após mostrar o resultado
+             setTimeout(() => {
+                resetGameState();
+            }, 3000); // Delay para o usuário ver o resultado antes de resetar
+        }
+        
+        // Mostrar modal de resultado (vitória ou perda)
+        function showResult(isWin) {
+            const modal = document.getElementById('resultModal');
+            const content = document.getElementById('resultContent');
+            const icon = document.getElementById('resultIcon');
+            const title = document.getElementById('resultTitle');
+            const message = document.getElementById('resultMessage');
+            
+            // Configurar o modal de acordo com o resultado
+            if (isWin) {
+                content.className = 'result-content win'; // Adiciona classe 'win' para estilos específicos
+                icon.textContent = '🎉'; // Emoji de vitória
+                title.textContent = 'Você Ganhou!';
+                message.textContent = `Você sacou em ${currentMultiplier.toFixed(2)}x e ganhou R$ ${(currentBet * currentMultiplier).toFixed(2)}!`;
+            } else {
+                content.className = 'result-content lose'; // Adiciona classe 'lose' para estilos específicos
+                icon.textContent = '😭'; // Emoji de perda (ou 💥)
+                title.textContent = 'Você Perdeu!';
+                 // Exibe o ponto onde crashou, não onde o jogador estava
+                message.textContent = `O avião caiu em ${crashPoint.toFixed(2)}x e você perdeu sua aposta de R$ ${currentBet.toFixed(2)}.`;
+            }
+            
+            // Mostrar o modal
+            modal.style.display = 'flex';
+        }
+        
+        // Esconder o modal de resultado e preparar para nova rodada
+        document.getElementById('newGameBtn').addEventListener('click', function() {
+            document.getElementById('resultModal').style.display = 'none';
+             // O resetGameState já é chamado após o delay no cashout ou no crash se o usuário perdeu
+             // Se precisar de um reset instantâneo ao clicar no botão, chame resetGameState() aqui
+        });
+
+        // Funções para gerenciar transações (Copiada do código do Dashboard para consistência)
+        function addTransaction(type, amount, details) {
+            // Garante que o histórico de transações existe no localStorage
+            if (!localStorage.getItem('transactionHistory')) {
+                 localStorage.setItem('transactionHistory', JSON.stringify([]));
+            }
+            
+            const transaction = {
+                id: Date.now(), // ID único simples
+                type: type, // 'Depósito', 'Saque', 'Aposta', 'Ganho'
+                amount: amount, // Valor da transação (+ para entrada, - para saída)
+                details: details, // Detalhes (ex: "Jogo Aviator", "Multiplicador: ...x")
+                date: new Date().toLocaleString('pt-BR') // Data e hora formatadas
+            };
+            
+            const history = JSON.parse(localStorage.getItem('transactionHistory'));
+            history.unshift(transaction); // Adicionar a transação mais recente no topo
+            
+            // Limitar o histórico para não crescer indefinidamente (mesmo limite do dashboard)
+            if (history.length > 50) { // Manter apenas as últimas 50 transações
+                 history.pop();
+            }
+
+            localStorage.setItem('transactionHistory', JSON.stringify(history)); // Salvar o histórico atualizado
+        }
+
+    </script>
+</body>
+</html>

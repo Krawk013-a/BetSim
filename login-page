@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSim - Simulador Acadêmico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e1e2e, #2a2a40);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            background-color: rgba(20, 20, 35, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #4CAF50;
+            font-size: 36px;
+            font-weight: 700;
+        }
+        
+        .logo span {
+            color: #FFC107;
+        }
+        
+        .disclaimer {
+            text-align: center;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 20px;
+            padding: 5px;
+            background-color: rgba(255, 193, 7, 0.2);
+            border-radius: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ddd;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .create-account {
+            margin-top: 20px;
+            text-align: center;
+            color: #ddd;
+        }
+        
+        .create-account a {
+            color: #FFC107;
+            text-decoration: none;
+        }
+        
+        .create-account a:hover {
+            text-decoration: underline;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: #2a2a40;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #FFC107;
+        }
+        
+        .modal-btn {
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>Bet<span>Sim</span></h1>
+        </div>
+        
+        <div class="disclaimer">
+            <p>Este é um simulador para fins acadêmicos - TCC sobre legalização das casas de apostas.</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Nome de usuário</label>
+                <input type="text" id="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required>
+            </div>
+            
+            <button type="submit" class="btn">Entrar</button>
+        </form>
+        
+        <div class="create-account">
+            <p>Não tem uma conta? <a href="#" id="registerLink">Cadastre-se</a></p>
+        </div>
+    </div>
+    
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <h2>Login realizado com sucesso!</h2>
+            <p>Você será redirecionado para a página principal.</p>
+            <button class="modal-btn" id="continueBtn">Continuar</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Simulação de autenticação
+            if (username.trim() !== '' && password.trim() !== '') {
+                // Armazena o nome do usuário no localStorage para uso posterior
+                localStorage.setItem('currentUser', username);
+                localStorage.setItem('userBalance', '1000.00'); // Saldo inicial de R$ 1000
+                
+                // Mostra o modal de sucesso
+                document.getElementById('successModal').style.display = 'flex';
+            }
+        });
+        
+        document.getElementById('continueBtn').addEventListener('click', function() {
+            // Redireciona para a página principal após o login
+            window.location.href = 'dashboard.html';
+        });
+        
+        document.getElementById('registerLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Funcionalidade de cadastro em desenvolvimento. Por favor, use qualquer nome de usuário e senha para fazer login no simulador acadêmico.');
+        });
+    </script>
+</body>
+</html>

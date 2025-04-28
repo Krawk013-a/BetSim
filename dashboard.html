@@ -495,7 +495,7 @@
             
             if (!currentUser) {
                 // Redirecionar para a página de login se não estiver logado
-                window.location.href = 'index.html'; // Assumindo que sua página de login se chama index.html
+                window.location.href = 'login.html'; // Assumindo que sua página de login se chama index.html
                 return;
             }
             
@@ -514,7 +514,7 @@
             localStorage.removeItem('currentUser');
             localStorage.removeItem('userBalance'); // Limpar saldo ao deslogar
             localStorage.removeItem('transactionHistory'); // Limpar histórico ao deslogar
-            window.location.href = 'index.html';
+            window.location.href = 'login.html';
         });
         
         // Funções do sistema bancário - Abrir Modais

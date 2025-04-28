@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSim - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #1e1e2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        header {
+            background-color: #2a2a40;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo h1 {
+            color: #4CAF50;
+            font-size: 24px;
+        }
+        
+        .logo span {
+            color: #FFC107;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .balance {
+            background-color: rgba(76, 175, 80, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-right: 15px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .username {
+            color: #ddd;
+            margin-right: 15px;
+        }
+        
+        .logout-btn {
+            background-color: transparent;
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background-color: #ff6b6b;
+            color: #fff;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .disclaimer {
+            text-align: center;
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 30px;
+            padding: 10px;
+            background-color: rgba(255, 193, 7, 0.1);
+            border-radius: 5px;
+        }
+        
+        .bank-section {
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #FFC107;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title:before {
+            content: '';
+            width: 15px;
+            height: 15px;
+            background-color: #FFC107;
+            display: inline-block;
+            margin-right: 10px;
+            border-radius: 50%;
+        }
+        
+        .bank-actions {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .bank-card {
+            background-color: #333350;
+            padding: 20px;
+            border-radius: 10px;
+            flex: 1;
+            min-width: 200px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .bank-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bank-card h3 {
+            color: #ddd;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .bank-card p {
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .games-section {
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .section-title:before {
+            /* Redefinido aqui para a seção de jogos */
+            content: '';
+            width: 15px;
+            height: 15px;
+            background-color: #4CAF50; /* Cor diferente */
+            display: inline-block;
+            margin-right: 10px;
+            border-radius: 50%;
+        }
+
+        .games-section .section-title {
+            color: #4CAF50; /* Cor diferente */
+        }
+        
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .game-card {
+            background-color: #333350;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .game-img {
+            height: 150px;
+            background-color: #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #FFC107;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .game-info {
+            padding: 15px;
+        }
+        
+        .game-info h3 {
+            color: #ddd;
+            margin-bottom: 5px;
+        }
+        
+        .game-info p {
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: #2a2a40;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            color: #FFC107;
+            font-size: 20px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .close-btn:hover {
+            color: #fff;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #ddd;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #45a049;
+        }
+        
+        .success-message, .error-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .success-message {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+        
+        .error-message {
+            background-color: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Bet<span>Sim</span></h1>
+        </div>
+        
+        <div class="user-info">
+            <div class="balance" id="userBalance">R$ 0,00</div>
+            <div class="username" id="username">Usuário</div>
+            <button class="logout-btn" id="logoutBtn">Sair</button>
+        </div>
+    </header>
+    
+    <div class="main-content">
+        <div class="disclaimer">
+            <p>Este é um simulador para fins acadêmicos - TCC sobre legalização das casas de apostas. Nenhuma transação real é realizada.</p>
+        </div>
+        
+        <div class="bank-section">
+            <h2 class="section-title">Sistema Bancário</h2>
+            <div class="bank-actions">
+                <div class="bank-card" id="depositBtn">
+                    <h3>Depositar</h3>
+                    <p>Adicione créditos fictícios à sua conta</p>
+                </div>
+                
+                <div class="bank-card" id="withdrawBtn">
+                    <h3>Sacar</h3>
+                    <p>Retire seus ganhos fictícios</p>
+                </div>
+                
+                <div class="bank-card" id="historyBtn">
+                    <h3>Histórico</h3>
+                    <p>Veja suas transações anteriores</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="games-section">
+            <h2 class="section-title">Jogos Disponíveis</h2>
+            <div class="games-grid">
+                <div class="game-card" id="minesGame">
+                    <div class="game-img" style="background-color: #333366; display: flex; justify-content: center; align-items: center;">
+                        <span style="font-size: 40px;">💣</span>
+                    </div>
+                    <div class="game-info">
+                        <h3>Mines</h3>
+                        <p>Encontre os diamantes e evite as minas</p>
+                    </div>
+                </div>
+                
+                <div class="game-card" id="aviatorGame">
+                    <div class="game-img" style="background-color: #663333; display: flex; justify-content: center; align-items: center;">
+                        <span style="font-size: 40px;">✈️</span>
+                    </div>
+                    <div class="game-info">
+                        <h3>Aviator</h3>
+                        <p>Retire antes que o avião decole</p>
+                    </div>
+                </div>
+                
+                <div class="game-card" id="rouletteGame">
+                    <div class="game-img" style="background-color: #336633; display: flex; justify-content: center; align-items: center;">
+                        <span style="font-size: 40px;">🎲</span>
+                    </div>
+                    <div class="game-info">
+                        <h3>Roleta</h3>
+                        <p>Aposte em números e cores</p>
+                    </div>
+                </div>
+                
+                <div class="game-card" id="slotsGame">
+                    <div class="game-img" style="background-color: #663366; display: flex; justify-content: center; align-items: center;">
+                        <span style="font-size: 40px;">🎰</span>
+                    </div>
+                    <div class="game-info">
+                        <h3>Slots</h3>
+                        <p>Gire os rolos e combine símbolos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="depositModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Depositar Créditos</h2>
+                <button class="close-btn deposit-close">&times;</button>
+            </div>
+            
+            <form id="depositForm">
+                <div class="form-group">
+                    <label for="depositAmount">Valor (R$)</label>
+                    <input type="number" id="depositAmount" min="10" step="10" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="cardNumber">Número do Cartão (Fictício)</label>
+                    <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                </div>
+                
+                <button type="submit" class="btn">Depositar</button>
+            </form>
+            
+            <div class="success-message" id="depositSuccess">
+                Depósito realizado com sucesso!
+            </div>
+            
+            <div class="error-message" id="depositError">
+                Erro ao processar o depósito. Tente novamente.
+            </div>
+        </div>
+    </div>
+    
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Sacar Créditos</h2>
+                <button class="close-btn withdraw-close">&times;</button>
+            </div>
+            
+            <form id="withdrawForm">
+                <div class="form-group">
+                    <label for="withdrawAmount">Valor (R$)</label>
+                    <input type="number" id="withdrawAmount" min="10" step="10" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pixKey">Chave PIX (Fictícia)</label>
+                    <input type="text" id="pixKey" placeholder="CPF, Email ou Telefone" required>
+                </div>
+                
+                <button type="submit" class="btn">Sacar</button>
+            </form>
+            
+            <div class="success-message" id="withdrawSuccess">
+                Solicitação de saque realizada com sucesso!
+            </div>
+            
+            <div class="error-message" id="withdrawError">
+                Erro ao processar o saque. Verifique seu saldo e tente novamente.
+            </div>
+        </div>
+    </div>
+    
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Histórico de Transações</h2>
+                <button class="close-btn history-close">&times;</button>
+            </div>
+            
+            <div id="transactionHistory" style="max-height: 300px; overflow-y: auto;">
+                <p style="color: #aaa; text-align: center;">Sem transações registradas.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar se o usuário está logado
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const userBalance = localStorage.getItem('userBalance') || '0.00';
+            
+            if (!currentUser) {
+                // Redirecionar para a página de login se não estiver logado
+                window.location.href = 'index.html'; // Assumindo que sua página de login se chama index.html
+                return;
+            }
+            
+            // Exibir informações do usuário
+            document.getElementById('username').textContent = currentUser;
+            document.getElementById('userBalance').textContent = `R$ ${parseFloat(userBalance).toFixed(2)}`;
+            
+            // Inicializar histórico de transações se não existir
+            if (!localStorage.getItem('transactionHistory')) {
+                localStorage.setItem('transactionHistory', JSON.stringify([]));
+            }
+        });
+        
+        // Função de logout
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('userBalance'); // Limpar saldo ao deslogar
+            localStorage.removeItem('transactionHistory'); // Limpar histórico ao deslogar
+            window.location.href = 'index.html';
+        });
+        
+        // Funções do sistema bancário - Abrir Modais
+        document.getElementById('depositBtn').addEventListener('click', function() {
+            document.getElementById('depositModal').style.display = 'flex';
+        });
+        
+        document.getElementById('withdrawBtn').addEventListener('click', function() {
+            document.getElementById('withdrawModal').style.display = 'flex';
+        });
+        
+        document.getElementById('historyBtn').addEventListener('click', function() {
+            showTransactionHistory(); // Atualiza o histórico antes de abrir o modal
+            document.getElementById('historyModal').style.display = 'flex';
+        });
+        
+        // Fechar modais (clicando no X)
+        document.querySelectorAll('.close-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+                
+                // Resetar mensagens de sucesso/erro
+                document.getElementById('depositSuccess').style.display = 'none';
+                document.getElementById('depositError').style.display = 'none';
+                document.getElementById('withdrawSuccess').style.display = 'none';
+                document.getElementById('withdrawError').style.display = 'none';
+                 // Resetar formulários
+                document.getElementById('depositForm').reset();
+                document.getElementById('withdrawForm').reset();
+            });
+        });
+
+         // Fechar modais clicando fora (opcional)
+        window.addEventListener('click', function(event) {
+            const depositModal = document.getElementById('depositModal');
+            const withdrawModal = document.getElementById('withdrawModal');
+            const historyModal = document.getElementById('historyModal');
+
+            if (event.target === depositModal) {
+                depositModal.style.display = 'none';
+                 document.getElementById('depositSuccess').style.display = 'none';
+                document.getElementById('depositError').style.display = 'none';
+                 document.getElementById('depositForm').reset();
+            }
+             if (event.target === withdrawModal) {
+                withdrawModal.style.display = 'none';
+                 document.getElementById('withdrawSuccess').style.display = 'none';
+                document.getElementById('withdrawError').style.display = 'none';
+                document.getElementById('withdrawForm').reset();
+            }
+             if (event.target === historyModal) {
+                historyModal.style.display = 'none';
+            }
+        });
+        
+        // Processamento de depósito
+        document.getElementById('depositForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            const cardNumber = document.getElementById('cardNumber').value;
+             // Limpar mensagens anteriores
+            document.getElementById('depositSuccess').style.display = 'none';
+            document.getElementById('depositError').style.display = 'none';
+
+            if (isNaN(amount) || amount <= 0 || !cardNumber) {
+                document.getElementById('depositError').textContent = 'Por favor, preencha todos os campos corretamente.';
+                document.getElementById('depositError').style.display = 'block';
+                return;
+            }
+            
+            // Atualizar saldo (usando localStorage para simular)
+            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+            const newBalance = currentBalance + amount;
+            localStorage.setItem('userBalance', newBalance.toString());
+            
+            // Atualizar exibição do saldo
+            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+            
+            // Registrar transação
+            addTransaction('Depósito', amount, `Cartão final ${cardNumber.slice(-4)}`);
+            
+            // Exibir mensagem de sucesso
+            document.getElementById('depositSuccess').style.display = 'block';
+            
+            // Resetar formulário
+            document.getElementById('depositForm').reset();
+            
+            // Fechar modal após 2 segundos
+            setTimeout(function() {
+                document.getElementById('depositModal').style.display = 'none';
+                document.getElementById('depositSuccess').style.display = 'none'; // Ocultar a mensagem após fechar
+            }, 2000);
+        });
+        
+        // Processamento de saque
+        document.getElementById('withdrawForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const amount = parseFloat(document.getElementById('withdrawAmount').value);
+            const pixKey = document.getElementById('pixKey').value;
+
+            // Limpar mensagens anteriores
+             document.getElementById('withdrawSuccess').style.display = 'none';
+            document.getElementById('withdrawError').style.display = 'none';
+            
+            if (isNaN(amount) || amount <= 0 || !pixKey) {
+                document.getElementById('withdrawError').textContent = 'Por favor, preencha todos os campos corretamente.';
+                document.getElementById('withdrawError').style.display = 'block';
+                return;
+            }
+            
+            // Verificar saldo (usando localStorage para simular)
+            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+            
+            if (amount > currentBalance) {
+                document.getElementById('withdrawError').textContent = 'Saldo insuficiente para realizar o saque.';
+                document.getElementById('withdrawError').style.display = 'block';
+                return;
+            }
+            
+            // Atualizar saldo
+            const newBalance = currentBalance - amount;
+            localStorage.setItem('userBalance', newBalance.toString());
+            
+            // Atualizar exibição do saldo
+            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+            
+            // Registrar transação
+            addTransaction('Saque', -amount, `PIX: ${pixKey.substring(0, 3)}...`);
+            
+            // Exibir mensagem de sucesso
+            document.getElementById('withdrawSuccess').style.display = 'block';
+            
+            // Resetar formulário
+            document.getElementById('withdrawForm').reset();
+            
+            // Fechar modal após 2 segundos
+            setTimeout(function() {
+                document.getElementById('withdrawModal').style.display = 'none';
+                 document.getElementById('withdrawSuccess').style.display = 'none'; // Ocultar a mensagem após fechar
+            }, 2000);
+        });
+        
+        // Funções para gerenciar transações (usando localStorage para simular)
+        function addTransaction(type, amount, details) {
+            const transaction = {
+                id: Date.now(), // ID único (simplificado)
+                type: type, // 'Depósito', 'Saque', 'Aposta', 'Ganho'
+                amount: amount, // Valor da transação (+ para entrada, - para saída)
+                details: details, // Detalhes (ex: "Cartão final ...", "PIX: ...", "Jogo Mines", "Ganho Mines")
+                date: new Date().toLocaleString('pt-BR') // Data e hora formatadas
+            };
+            
+            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+            history.unshift(transaction); // Adicionar a transação mais recente no topo
+            // Limitar o histórico para não crescer indefinidamente (opcional, mas recomendado)
+            // Ex: manter apenas as últimas 50 transações
+            if (history.length > 50) {
+                 history.pop();
+            }
+
+            localStorage.setItem('transactionHistory', JSON.stringify(history));
+        }
+        
+        // Função para exibir o histórico de transações no modal
+        function showTransactionHistory() {
+            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+            const historyContainer = document.getElementById('transactionHistory');
+            
+            if (history.length === 0) {
+                historyContainer.innerHTML = '<p style="color: #aaa; text-align: center;">Sem transações registradas.</p>';
+                return;
+            }
+            
+            let html = '<ul style="list-style: none; padding: 0;">';
+            
+            history.forEach(transaction => {
+                const amountClass = transaction.amount >= 0 ? 'color: #4CAF50;' : 'color: #ff6b6b;';
+                const sign = transaction.amount >= 0 ? '' : '-'; // Adiciona o sinal negativo para saques
+                
+                html += `
+                    <li style="padding: 10px; border-bottom: 1px solid #444; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <strong>${transaction.type}</strong>
+                            <span style="${amountClass} font-weight: bold;">R$ ${sign}${Math.abs(transaction.amount).toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                            <span style="color: #aaa; font-size: 12px;">${transaction.details}</span>
+                            <span style="color: #aaa; font-size: 12px;">${transaction.date}</span>
+                        </div>
+                    </li>
+                `;
+            });
+            
+            html += '</ul>';
+            historyContainer.innerHTML = html;
+        }
+        
+        // Navegação para os jogos (assumindo que cada jogo terá seu próprio arquivo HTML)
+        document.getElementById('minesGame').addEventListener('click', function() {
+            window.location.href = 'mines.html'; // Você precisará criar o arquivo mines.html
+        });
+        
+        document.getElementById('aviatorGame').addEventListener('click', function() {
+            window.location.href = 'aviator.html'; // Você precisará criar o arquivo aviator.html
+        });
+        
+        // Mensagens para jogos não implementados
+        document.getElementById('rouletteGame').addEventListener('click', function() {
+            alert('Jogo de Roleta em desenvolvimento para o TCC. Por favor, experimente o Mines ou o Aviator.');
+        });
+        
+        document.getElementById('slotsGame').addEventListener('click', function() {
+            alert('Jogo de Slots em desenvolvimento para o TCC. Por favor, experimente o Mines ou o Aviator.');
+        });
+
+         // --- Simulação de Aposta (Exemplo Básico para o Dashboard) ---
+         // Esta é apenas uma simulação visual no dashboard, os jogos reais terão sua própria lógica
+        document.addEventListener('click', function(e) {
+            // Exemplo: Simular ganho/perda ao clicar no saldo (Apenas para demonstração rápida)
+            if (e.target && e.target.id === 'userBalance') {
+                 if (confirm('Simular uma aposta? (Clique OK para Ganhar, Cancelar para Perder)')) {
+                    const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+                    const betAmount = 10; // Simula uma aposta de R$ 10
+                    let newBalance = currentBalance + betAmount * 5; // Simula um ganho (5x a aposta)
+                    addTransaction('Aposta Simulada', betAmount * 5, 'Ganho simulado no Dashboard');
+                    localStorage.setItem('userBalance', newBalance.toString());
+                    document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+                    alert('Ganho simulado!');
+
+                 } else {
+                     const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+                     const betAmount = 10; // Simula uma aposta de R$ 10
+                     if (currentBalance >= betAmount) {
+                        let newBalance = currentBalance - betAmount; // Simula uma perda
+                         addTransaction('Aposta Simulada', -betAmount, 'Perda simulada no Dashboard');
+                        localStorage.setItem('userBalance', newBalance.toString());
+                        document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+                        alert('Perda simulada!');
+                     } else {
+                         alert('Saldo insuficiente para simular perda.');
+                     }
+                 }
+            }
+        });
+
+
+    </script>
+</body>
+</html>

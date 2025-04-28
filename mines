@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSim - Mines</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #1e1e2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        header {
+            background-color: #2a2a40;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .logo h1 {
+            color: #4CAF50;
+            font-size: 24px;
+        }
+        
+        .logo span {
+            color: #FFC107;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .balance {
+            background-color: rgba(76, 175, 80, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-right: 15px;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .username {
+            color: #ddd;
+            margin-right: 15px;
+        }
+        
+        .back-btn {
+            background-color: transparent;
+            border: 1px solid #FFC107;
+            color: #FFC107;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background-color: #FFC107;
+            color: #1e1e2e;
+        }
+        
+        .main-content {
+            padding: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: #2a2a40;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-title {
+            font-size: 24px;
+            color: #FFC107;
+            display: flex;
+            align-items: center;
+        }
+        
+        .game-title span {
+            font-size: 28px;
+            margin-right: 10px;
+        }
+        
+        .game-controls {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .mines-selector {
+            display: flex;
+            align-items: center;
+            background-color: #333350;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .mines-selector label {
+            margin-right: 10px;
+            color: #ddd;
+        }
+        
+        .mines-selector select {
+            background-color: #1e1e2e;
+            color: #fff;
+            border: none;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .bet-input {
+            display: flex;
+            align-items: center;
+            background-color: #333350;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .bet-input label {
+            margin-right: 10px;
+            color: #ddd;
+        }
+        
+        .bet-input input {
+            background-color: #1e1e2e;
+            color: #fff;
+            border: none;
+            padding: 5px;
+            border-radius: 3px;
+            width: 80px;
+        }
+        
+        .start-btn, .cashout-btn {
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .start-btn {
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+        }
+        
+        .start-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .cashout-btn {
+            background-color: #FFC107;
+            color: #1e1e2e;
+            border: none;
+            display: none;
+        }
+        
+        .cashout-btn:hover {
+            background-color: #e6ac00;
+        }
+        
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .game-board {
+            margin: 20px 0;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        
+        .game-tile {
+            aspect-ratio: 1;
+            background-color: #333350;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-tile:hover:not(.revealed) {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            background-color: #3d3d5c;
+        }
+        
+        .game-tile.revealed {
+            cursor: default;
+        }
+        
+        .game-tile.gem {
+            background-color: rgba(76, 175, 80, 0.3);
+        }
+        
+        .game-tile.mine {
+            background-color: rgba(255, 107, 107, 0.3);
+        }
+        
+        .game-info {
+            background-color: #2a2a40;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .multiplier {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFC107;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .potential-win {
+            font-size: 18px;
+            color: #4CAF50;
+            text-align: center;
+        }
+        
+        .result-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 10;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .result-content {
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .result-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .result-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .result-message {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+        
+        .result-btn {
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .result-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .win .result-icon, .win .result-title {
+            color: #4CAF50;
+        }
+        
+        .lose .result-icon, .lose .result-title {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Bet<span>Sim</span></h1>
+        </div>
+        
+        <div class="user-info">
+            <div class="balance" id="userBalance">R$ 0,00</div>
+            <div class="username" id="username">Usuário</div>
+            <button class="back-btn" id="backBtn">Voltar</button>
+        </div>
+    </header>
+    
+    <div class="main-content">
+        <div class="game-header">
+            <div class="game-title">
+                <span>💣</span> Mines
+            </div>
+            
+            <div class="game-controls">
+                <div class="mines-selector">
+                    <label for="minesCount">Minas:</label>
+                    <select id="minesCount">
+                        <option value="1">1</option>
+                        <option value="3">3</option>
+                        <option value="5" selected>5</option>
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                    </select>
+                </div>
+                
+                <div class="bet-input">
+                    <label for="betAmount">Aposta:</label>
+                    <input type="number" id="betAmount" value="10" min="1" step="1">
+                </div>
+                
+                <button class="start-btn" id="startGame">Iniciar Jogo</button>
+                <button class="cashout-btn" id="cashoutBtn">Sacar R$ 0,00</button>
+            </div>
+        </div>
+        
+        <div class="game-board" id="gameBoard">
+            <!-- Os tiles do jogo serão gerados via JavaScript -->
+        </div>
+        
+        <div class="game-info">
+            <div class="multiplier" id="multiplier">Multiplicador: 1.00x</div>
+            <div class="potential-win" id="potentialWin">Ganho Potencial: R$ 0,00</div>
+        </div>
+    </div>
+    
+    <div class="result-modal" id="resultModal">
+        <div class="result-content" id="resultContent">
+            <div class="result-icon" id="resultIcon">💎</div>
+            <div class="result-title" id="resultTitle">Você Ganhou!</div>
+            <div class="result-message" id="resultMessage">Você achou 5 diamantes e ganhou R$ 50,00!</div>
+            <button class="result-btn" id="newGameBtn">Novo Jogo</button>
+        </div>
+    </div>
+
+    <script>
+        // Verificar se o usuário está logado
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            const userBalance = localStorage.getItem('userBalance') || '0.00';
+            
+            if (!currentUser) {
+                // Redirecionar para a página de login se não estiver logado
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Exibir informações do usuário
+            document.getElementById('username').textContent = currentUser;
+            document.getElementById('userBalance').textContent = `R$ ${parseFloat(userBalance).toFixed(2)}`;
+            
+            // Inicializar o tabuleiro
+            initializeBoard();
+        });
+        
+        // Botão de voltar
+        document.getElementById('backBtn').addEventListener('click', function() {
+            window.location.href = 'dashboard.html';
+        });
+        
+        // Variáveis do jogo
+        let gameActive = false;
+        let minesLocations = [];
+        let revealedTiles = 0;
+        let currentBet = 0;
+        let currentMultiplier = 1;
+        let potentialWin = 0;
+        
+        // Inicializar o tabuleiro
+        function initializeBoard() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            
+            for (let i = 0; i < 25; i++) {
+                const tile = document.createElement('div');
+                tile.className = 'game-tile';
+                tile.dataset.index = i;
+                tile.addEventListener('click', handleTileClick);
+                gameBoard.appendChild(tile);
+            }
+        }
+        
+        // Iniciar jogo
+        document.getElementById('startGame').addEventListener('click', function() {
+            if (gameActive) return;
+            
+            const minesCount = parseInt(document.getElementById('minesCount').value);
+            const betAmount = parseFloat(document.getElementById('betAmount').value);
+            const userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+            
+            // Validar aposta
+            if (isNaN(betAmount) || betAmount <= 0) {
+                alert('Por favor, insira um valor de aposta válido.');
+                return;
+            }
+            
+            if (betAmount > userBalance) {
+                alert('Saldo insuficiente para realizar esta aposta.');
+                return;
+            }
+            
+            // Atualizar saldo
+            const newBalance = userBalance - betAmount;
+            localStorage.setItem('userBalance', newBalance.toString());
+            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+            
+            // Registrar transação
+            addTransaction('Aposta - Mines', -betAmount, 'Início de jogo');
+            
+            // Inicializar variáveis do jogo
+            gameActive = true;
+            currentBet = betAmount;
+            currentMultiplier = 1;
+            revealedTiles = 0;
+            minesLocations = generateMines(minesCount);
+            
+            // Atualizar interface
+            document.getElementById('startGame').classList.add('disabled');
+            document.getElementById('minesCount').disabled = true;
+            document.getElementById('betAmount').disabled = true;
+            document.getElementById('cashoutBtn').style.display = 'block';
+            updateGameInfo();
+            
+            // Resetar tabuleiro
+            const tiles = document.querySelectorAll('.game-tile');
+            tiles.forEach(tile => {
+                tile.className = 'game-tile';
+                tile.textContent = '';
+            });
+        });
+        
+        // Gerar posições das minas
+        function generateMines(count) {
+            const mines = [];
+            while (mines.length < count) {
+                const position = Math.floor(Math.random() * 25);
+                if (!mines.includes(position)) {
+                    mines.push(position);
+                }
+            }
+            return mines;
+        }
+        
+        // Manipular clique nos tiles
+        function handleTileClick(e) {
+            if (!gameActive) return;
+            
+            const tileIndex = parseInt(e.target.dataset.index);
+            
+            // Verificar se o tile já foi revelado
+            if (e.target.classList.contains('revealed')) return;
+            
+            // Verificar se é uma mina
+            if (minesLocations.includes(tileIndex)) {
+                // Revelar todas as minas
+                revealAllMines();
+                
+                // Game over
+                gameActive = false;
+                document.getElementById('cashoutBtn').style.display = 'none';
+                
+                // Mostrar modal de derrota
+                showResult(false);
+                
+                return;
+            }
+            
+            // Revelar diamante
+            e.target.classList.add('revealed', 'gem');
+            e.target.textContent = '💎';
+            revealedTiles++;
+            
+            // Atualizar multiplicador e potencial ganho
+            updateMultiplier();
+            
+            // Verificar se todos os diamantes foram revelados
+            if (revealedTiles === 25 - minesLocations.length) {
+                cashout();
+                showResult(true, 'Todos os diamantes encontrados!');
+            }
+        }
+        
+        // Revelar todas as minas
+        function revealAllMines() {
+            const tiles = document.querySelectorAll('.game-tile');
+            minesLocations.forEach(index => {
+                tiles[index].classList.add('revealed', 'mine');
+                tiles[index].textContent = '💣';
+            });
+        }
+        
+        // Atualizar multiplicador e ganho potencial
+        function updateMultiplier() {
+            const minesCount = parseInt(document.getElementById('minesCount').value);
+            const safeSquares = 25 - minesCount;
+            
+            // Fórmula do multiplicador: quanto mais diamantes revelados, maior o multiplicador
+            // Esta é uma fórmula simplificada para demonstração
+            currentMultiplier = parseFloat((0.95 * (25 / (25 - revealedTiles)) * (safeSquares / (safeSquares - revealedTiles))).toFixed(2));
+            
+            potentialWin = currentBet * currentMultiplier;
+            
+            // Atualizar interface
+            updateGameInfo();
+        }
+        
+        // Atualizar informações do jogo
+        function updateGameInfo() {
+            document.getElementById('multiplier').textContent = `Multiplicador: ${currentMultiplier.toFixed(2)}x`;
+            document.getElementById('potentialWin').textContent = `Ganho Potencial: R$ ${potentialWin.toFixed(2)}`;
+            document.getElementById('cashoutBtn').textContent = `Sacar R$ ${potentialWin.toFixed(2)}`;
+        }
+        
+        // Função de cashout
+        document.getElementById('cashoutBtn').addEventListener('click', function() {
+            if (!gameActive) return;
+            cashout();
+            showResult(true);
+        });
+        
+        function cashout() {
+            // Finalizar o jogo
+            gameActive = false;
+            
+            // Calcular o ganho
+            const winAmount = currentBet * currentMultiplier;
+            
+            // Atualizar saldo
+            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+            const newBalance = currentBalance + winAmount;
+            localStorage.setItem('userBalance', newBalance.toString());
+            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+            
+            // Registrar transação
+            addTransaction('Ganho - Mines', winAmount, `Multiplicador: ${currentMultiplier.toFixed(2)}x`);
+            
+            // Revelar todas as minas
+            revealAllMines();
+            
+            // Resetar controles
+            document.getElementById('startGame').classList.remove('disabled');
+            document.getElementById('minesCount').disabled = false;
+            document.getElementById('betAmount').disabled = false;
+            document.getElementById('cashoutBtn').style.display = 'none';
+        }
+        
+        // Mostrar modal de resultado
+        function showResult(isWin, customMessage = null) {
+            const modal = document.getElementById('resultModal');
+            const content = document.getElementById('resultContent');
+            const icon = document.getElementById('resultIcon');
+            const title = document.getElementById('resultTitle');
+            const message = document.getElementById('resultMessage');
+            
+            // Configurar o modal de acordo com o resultado
+            if (isWin) {
+                content.className = 'result-content win';
+                icon.textContent = '💎';
+                title.textContent = 'Você Ganhou!';
+                
+                if (customMessage) {
+                    message.textContent = customMessage;
+                } else {
+                    message.textContent = `Você encontrou ${revealedTiles} diamantes e ganhou R$ ${(currentBet * currentMultiplier).toFixed(2)}!`;
+                }
+            } else {
+                content.className = 'result-content lose';
+                icon.textContent = '💣';
+                title.textContent = 'Você Perdeu!';
+                message.textContent = 'Você encontrou uma mina e perdeu sua aposta de R$ ' + currentBet.toFixed(2) + '.';
+            }
+            
+            // Mostrar o modal
+            modal.style.display = 'flex';
+        }
+        
+        // Iniciar novo jogo ao clicar no botão
+        document.getElementById('newGameBtn').addEventListener('click', function() {
+            document.getElementById('resultModal').style.display = 'none';
+            
+            // Resetar controles
+            document.getElementById('startGame').classList.remove('disabled');
+            document.getElementById('minesCount').disabled = false;
+            document.getElementById('betAmount').disabled = false;
+            
+            // Inicializar tabuleiro
+            initializeBoard();
+        });
+        
+        // Funções para gerenciar transações
+        function addTransaction(type, amount, details) {
+            const transaction = {
+                id: Date.now(),
+                type: type,
+                amount: amount,
+                details: details,
+                date: new Date().toLocaleString('pt-BR')
+            };
+            
+            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+            history.unshift(transaction); // Adicionar ao início do array
+            localStorage.setItem('transactionHistory', JSON.stringify(history));
+        }
+    </script>
+</body>
+</html>

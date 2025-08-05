@@ -773,25 +773,14 @@
                 details: details,
                 date: new Date().toLocaleString('pt-BR'),
                 game: 'Roleta',
-                user: localStorage.getItem('currentUser')
-            };
-            
-            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
-            history.unshift(transaction);
-            localStorage.setItem('transactionHistory', JSON.stringify(history));
-            
-            // Salvar log para planilha
-            saveGameLog(transaction);
-        }
-        
-        // Função para salvar log do jogo
-        function saveGameLog(transaction) {
-            const gameLog = JSON.parse(localStorage.getItem('gameLog') || '[]');
-            gameLog.push({
-                ...transaction,
+                user: localStorage.getItem('currentUser'),
                 timestamp: new Date().toISOString(),
                 sessionId: Date.now()
-            });
+            };
+            
+            // Salvar apenas no gameLog para evitar duplicação
+            const gameLog = JSON.parse(localStorage.getItem('gameLog') || '[]');
+            gameLog.push(transaction);
             localStorage.setItem('gameLog', JSON.stringify(gameLog));
         }
     </script>

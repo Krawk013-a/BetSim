@@ -353,12 +353,10 @@
         }
         
         function loadLogs() {
-            // Carregar logs de todos os usuários (simulado)
+            // Carregar apenas logs de jogos para evitar duplicação
             const gameLog = JSON.parse(localStorage.getItem('gameLog') || '[]');
-            const transactionHistory = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
             
-            // Combinar logs de jogos e transações
-            allLogs = [...gameLog, ...transactionHistory];
+            allLogs = gameLog;
             
             // Ordenar por timestamp (mais recente primeiro)
             allLogs.sort((a, b) => {

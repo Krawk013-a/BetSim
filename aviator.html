@@ -858,30 +858,35 @@
              // Se precisar de um reset instantâneo ao clicar no botão, chame resetGameState() aqui
         });
 
-        // Funções para gerenciar transações (Copiada do código do Dashboard para consistência)
+        // Funções para gerenciar transações
         function addTransaction(type, amount, details) {
-            // Garante que o histórico de transações existe no localStorage
-            if (!localStorage.getItem('transactionHistory')) {
-                 localStorage.setItem('transactionHistory', JSON.stringify([]));
-            }
-            
             const transaction = {
-                id: Date.now(), // ID único simples
-                type: type, // 'Depósito', 'Saque', 'Aposta', 'Ganho'
-                amount: amount, // Valor da transação (+ para entrada, - para saída)
-                details: details, // Detalhes (ex: "Jogo Aviator", "Multiplicador: ...x")
-                date: new Date().toLocaleString('pt-BR') // Data e hora formatadas
+                id: Date.now(),
+                type: type,
+                amount: amount,
+                details: details,
+                date: new Date().toLocaleString('pt-BR'),
+                game: 'Aviator',
+                user: localStorage.getItem('currentUser')
             };
             
-            const history = JSON.parse(localStorage.getItem('transactionHistory'));
-            history.unshift(transaction); // Adicionar a transação mais recente no topo
+            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+            history.unshift(transaction);
+            localStorage.setItem('transactionHistory', JSON.stringify(history));
             
-            // Limitar o histórico para não crescer indefinidamente (mesmo limite do dashboard)
-            if (history.length > 50) { // Manter apenas as últimas 50 transações
-                 history.pop();
-            }
-
-            localStorage.setItem('transactionHistory', JSON.stringify(history)); // Salvar o histórico atualizado
+            // Salvar log para planilha
+            saveGameLog(transaction);
+        }
+        
+        // Função para salvar log do jogo
+        function saveGameLog(transaction) {
+            const gameLog = JSON.parse(localStorage.getItem('gameLog') || '[]');
+            gameLog.push({
+                ...transaction,
+                timestamp: new Date().toISOString(),
+                sessionId: Date.now()
+            });
+            localStorage.setItem('gameLog', JSON.stringify(gameLog));
         }
 
     </script>

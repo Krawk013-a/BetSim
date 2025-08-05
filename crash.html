@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetSim - Mines</title>
+    <title>BetSim - Crash</title>
     <style>
         * {
             margin: 0;
@@ -112,29 +112,6 @@
             align-items: center;
         }
         
-        .mines-selector {
-            display: flex;
-            align-items: center;
-            background-color: #333350;
-            padding: 4px 8px;
-            border-radius: 5px;
-        }
-        
-        .mines-selector label {
-            margin-right: 8px;
-            color: #ddd;
-            font-size: 12px;
-        }
-        
-        .mines-selector select {
-            background-color: #1e1e2e;
-            color: #fff;
-            border: none;
-            padding: 4px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-        
         .bet-input {
             display: flex;
             align-items: center;
@@ -155,7 +132,7 @@
             border: none;
             padding: 4px;
             border-radius: 3px;
-            width: 60px;
+            width: 80px;
             font-size: 12px;
         }
         
@@ -201,44 +178,31 @@
             min-height: 0;
         }
         
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 8px;
+        .crash-graph {
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 15px;
             margin-bottom: 15px;
             flex: 1;
-            max-height: 400px;
+            position: relative;
+            overflow: hidden;
         }
         
-        .game-tile {
-            aspect-ratio: 1;
-            background-color: #333350;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        .graph-canvas {
+            width: 100%;
+            height: 100%;
+            background-color: #1e1e2e;
+            border-radius: 5px;
         }
         
-        .game-tile:hover:not(.revealed) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            background-color: #3d3d5c;
-        }
-        
-        .game-tile.revealed {
-            cursor: default;
-        }
-        
-        .game-tile.gem {
-            background-color: rgba(76, 175, 80, 0.3);
-        }
-        
-        .game-tile.mine {
-            background-color: rgba(255, 107, 107, 0.3);
+        .crash-value {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFC107;
+            z-index: 10;
         }
         
         .game-info {
@@ -324,6 +288,18 @@
         .lose .result-icon, .lose .result-title {
             color: #ff6b6b;
         }
+        
+        .crash-line {
+            stroke: #FFC107;
+            stroke-width: 3;
+            fill: none;
+        }
+        
+        .crash-point {
+            fill: #FFC107;
+            stroke: #fff;
+            stroke-width: 2;
+        }
     </style>
 </head>
 <body>
@@ -342,34 +318,24 @@
     <div class="main-content">
         <div class="game-header">
             <div class="game-title">
-                <span>💣</span> Mines
+                <span>📈</span> Crash
             </div>
             
             <div class="game-controls">
-                <div class="mines-selector">
-                    <label for="minesCount">Minas:</label>
-                    <select id="minesCount">
-                        <option value="1">1</option>
-                        <option value="3">3</option>
-                        <option value="5" selected>5</option>
-                        <option value="10">10</option>
-                        <option value="15">15</option>
-                    </select>
-                </div>
-                
                 <div class="bet-input">
                     <label for="betAmount">Aposta:</label>
                     <input type="number" id="betAmount" value="10" min="1" step="1">
                 </div>
                 
-                <button class="start-btn" id="startGame">Iniciar Jogo</button>
+                <button class="start-btn" id="startGame">Fazer Aposta</button>
                 <button class="cashout-btn" id="cashoutBtn">Sacar R$ 0,00</button>
             </div>
         </div>
         
         <div class="game-container">
-            <div class="game-board" id="gameBoard">
-                <!-- Os tiles do jogo serão gerados via JavaScript -->
+            <div class="crash-graph">
+                <canvas id="crashCanvas" class="graph-canvas"></canvas>
+                <div class="crash-value" id="crashValue">1.00x</div>
             </div>
             
             <div class="game-info">
@@ -381,9 +347,9 @@
     
     <div class="result-modal" id="resultModal">
         <div class="result-content" id="resultContent">
-            <div class="result-icon" id="resultIcon">💎</div>
+            <div class="result-icon" id="resultIcon">📈</div>
             <div class="result-title" id="resultTitle">Você Ganhou!</div>
-            <div class="result-message" id="resultMessage">Você achou 5 diamantes e ganhou R$ 50,00!</div>
+            <div class="result-message" id="resultMessage">Você sacou no momento certo e ganhou R$ 50,00!</div>
             <button class="result-btn" id="newGameBtn">Novo Jogo</button>
         </div>
     </div>
@@ -395,17 +361,14 @@
             const userBalance = localStorage.getItem('userBalance') || '0.00';
             
             if (!currentUser) {
-                // Redirecionar para a página de login se não estiver logado
                 window.location.href = 'login.html';
                 return;
             }
             
-            // Exibir informações do usuário
             document.getElementById('username').textContent = currentUser;
             document.getElementById('userBalance').textContent = `R$ ${parseFloat(userBalance).toFixed(2)}`;
             
-            // Inicializar o tabuleiro
-            initializeBoard();
+            initializeGame();
         });
         
         // Botão de voltar
@@ -415,23 +378,50 @@
         
         // Variáveis do jogo
         let gameActive = false;
-        let minesLocations = [];
-        let revealedTiles = 0;
+        let betPlaced = false;
         let currentBet = 0;
         let currentMultiplier = 1;
         let potentialWin = 0;
+        let crashPoint = 1;
+        let animationId;
+        let canvas, ctx;
         
-        // Inicializar o tabuleiro
-        function initializeBoard() {
-            const gameBoard = document.getElementById('gameBoard');
-            gameBoard.innerHTML = '';
+        function initializeGame() {
+            canvas = document.getElementById('crashCanvas');
+            ctx = canvas.getContext('2d');
             
-            for (let i = 0; i < 25; i++) {
-                const tile = document.createElement('div');
-                tile.className = 'game-tile';
-                tile.dataset.index = i;
-                tile.addEventListener('click', handleTileClick);
-                gameBoard.appendChild(tile);
+            // Ajustar tamanho do canvas
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth - 30;
+                canvas.height = container.clientHeight - 30;
+            }
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            drawInitialGraph();
+        }
+        
+        function drawInitialGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Desenhar grade
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= 10; i++) {
+                const x = (canvas.width / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+                
+                const y = (canvas.height / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
             }
         }
         
@@ -439,11 +429,9 @@
         document.getElementById('startGame').addEventListener('click', function() {
             if (gameActive) return;
             
-            const minesCount = parseInt(document.getElementById('minesCount').value);
             const betAmount = parseFloat(document.getElementById('betAmount').value);
             const userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
             
-            // Validar aposta
             if (isNaN(betAmount) || betAmount <= 0) {
                 alert('Por favor, insira um valor de aposta válido.');
                 return;
@@ -460,122 +448,127 @@
             document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
             
             // Registrar transação
-            addTransaction('Aposta - Mines', -betAmount, 'Início de jogo');
+            addTransaction('Aposta - Crash', -betAmount, 'Início de jogo');
             
             // Inicializar variáveis do jogo
             gameActive = true;
+            betPlaced = true;
             currentBet = betAmount;
             currentMultiplier = 1;
-            revealedTiles = 0;
-            minesLocations = generateMines(minesCount);
+            crashPoint = generateCrashPoint();
             
             // Atualizar interface
             document.getElementById('startGame').classList.add('disabled');
-            document.getElementById('minesCount').disabled = true;
             document.getElementById('betAmount').disabled = true;
             document.getElementById('cashoutBtn').style.display = 'block';
-            updateGameInfo();
             
-            // Resetar tabuleiro
-            const tiles = document.querySelectorAll('.game-tile');
-            tiles.forEach(tile => {
-                tile.className = 'game-tile';
-                tile.textContent = '';
-            });
+            // Iniciar animação
+            startCrashAnimation();
         });
         
-        // Gerar posições das minas
-        function generateMines(count) {
-            const mines = [];
-            while (mines.length < count) {
-                const position = Math.floor(Math.random() * 25);
-                if (!mines.includes(position)) {
-                    mines.push(position);
+        function generateCrashPoint() {
+            // Gerar ponto de crash aleatório (entre 1.0x e 10.0x)
+            return Math.random() * 9 + 1;
+        }
+        
+        function startCrashAnimation() {
+            let time = 0;
+            const duration = 5000; // 5 segundos
+            
+            function animate() {
+                time += 16; // ~60fps
+                const progress = time / duration;
+                
+                if (progress >= 1) {
+                    // Crash aconteceu
+                    gameActive = false;
+                    document.getElementById('cashoutBtn').style.display = 'none';
+                    showResult(false);
+                    return;
+                }
+                
+                // Calcular multiplicador atual
+                currentMultiplier = 1 + (crashPoint - 1) * progress;
+                potentialWin = currentBet * currentMultiplier;
+                
+                // Atualizar interface
+                updateGameInfo();
+                drawCrashGraph(progress);
+                
+                if (gameActive) {
+                    animationId = requestAnimationFrame(animate);
                 }
             }
-            return mines;
+            
+            animate();
         }
         
-        // Manipular clique nos tiles
-        function handleTileClick(e) {
-            if (!gameActive) return;
+        function drawCrashGraph(progress) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const tileIndex = parseInt(e.target.dataset.index);
+            // Desenhar grade
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
             
-            // Verificar se o tile já foi revelado
-            if (e.target.classList.contains('revealed')) return;
-            
-            // Verificar se é uma mina
-            if (minesLocations.includes(tileIndex)) {
-                // Revelar todas as minas
-                revealAllMines();
+            for (let i = 0; i <= 10; i++) {
+                const x = (canvas.width / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
                 
-                // Game over
-                gameActive = false;
-                document.getElementById('cashoutBtn').style.display = 'none';
-                
-                // Mostrar modal de derrota
-                showResult(false);
-                
-                return;
+                const y = (canvas.height / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
             }
             
-            // Revelar diamante
-            e.target.classList.add('revealed', 'gem');
-            e.target.textContent = '💎';
-            revealedTiles++;
+            // Desenhar linha do crash
+            ctx.strokeStyle = '#FFC107';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
             
-            // Atualizar multiplicador e potencial ganho
-            updateMultiplier();
-            
-            // Verificar se todos os diamantes foram revelados
-            if (revealedTiles === 25 - minesLocations.length) {
-                cashout();
-                showResult(true, 'Todos os diamantes encontrados!');
+            for (let i = 0; i <= progress * 100; i++) {
+                const x = (canvas.width / 100) * i;
+                const multiplier = 1 + (crashPoint - 1) * (i / 100);
+                const y = canvas.height - (multiplier - 1) * (canvas.height / 10);
+                ctx.lineTo(x, y);
             }
+            
+            ctx.stroke();
+            
+            // Desenhar ponto atual
+            const currentX = canvas.width * progress;
+            const currentY = canvas.height - (currentMultiplier - 1) * (canvas.height / 10);
+            
+            ctx.fillStyle = '#FFC107';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 5, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
         }
         
-        // Revelar todas as minas
-        function revealAllMines() {
-            const tiles = document.querySelectorAll('.game-tile');
-            minesLocations.forEach(index => {
-                tiles[index].classList.add('revealed', 'mine');
-                tiles[index].textContent = '💣';
-            });
-        }
-        
-        // Atualizar multiplicador e ganho potencial
-        function updateMultiplier() {
-            const minesCount = parseInt(document.getElementById('minesCount').value);
-            const safeSquares = 25 - minesCount;
-            
-            // Fórmula do multiplicador: quanto mais diamantes revelados, maior o multiplicador
-            // Esta é uma fórmula simplificada para demonstração
-            currentMultiplier = parseFloat((0.95 * (25 / (25 - revealedTiles)) * (safeSquares / (safeSquares - revealedTiles))).toFixed(2));
-            
-            potentialWin = currentBet * currentMultiplier;
-            
-            // Atualizar interface
-            updateGameInfo();
-        }
-        
-        // Atualizar informações do jogo
         function updateGameInfo() {
             document.getElementById('multiplier').textContent = `Multiplicador: ${currentMultiplier.toFixed(2)}x`;
             document.getElementById('potentialWin').textContent = `Ganho Potencial: R$ ${potentialWin.toFixed(2)}`;
             document.getElementById('cashoutBtn').textContent = `Sacar R$ ${potentialWin.toFixed(2)}`;
+            document.getElementById('crashValue').textContent = `${currentMultiplier.toFixed(2)}x`;
         }
         
         // Função de cashout
         document.getElementById('cashoutBtn').addEventListener('click', function() {
-            if (!gameActive) return;
+            if (!gameActive || !betPlaced) return;
             cashout();
-            showResult(true);
         });
         
         function cashout() {
             // Finalizar o jogo
             gameActive = false;
+            betPlaced = false;
             
             // Calcular o ganho
             const winAmount = currentBet * currentMultiplier;
@@ -587,59 +580,54 @@
             document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
             
             // Registrar transação
-            addTransaction('Ganho - Mines', winAmount, `Multiplicador: ${currentMultiplier.toFixed(2)}x`);
+            addTransaction('Ganho - Crash', winAmount, `Multiplicador: ${currentMultiplier.toFixed(2)}x`);
             
-            // Revelar todas as minas
-            revealAllMines();
+            // Parar animação
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
             
             // Resetar controles
             document.getElementById('startGame').classList.remove('disabled');
-            document.getElementById('minesCount').disabled = false;
             document.getElementById('betAmount').disabled = false;
             document.getElementById('cashoutBtn').style.display = 'none';
+            
+            showResult(true);
         }
         
         // Mostrar modal de resultado
-        function showResult(isWin, customMessage = null) {
+        function showResult(isWin) {
             const modal = document.getElementById('resultModal');
             const content = document.getElementById('resultContent');
             const icon = document.getElementById('resultIcon');
             const title = document.getElementById('resultTitle');
             const message = document.getElementById('resultMessage');
             
-            // Configurar o modal de acordo com o resultado
             if (isWin) {
                 content.className = 'result-content win';
-                icon.textContent = '💎';
+                icon.textContent = '📈';
                 title.textContent = 'Você Ganhou!';
-                
-                if (customMessage) {
-                    message.textContent = customMessage;
-                } else {
-                    message.textContent = `Você encontrou ${revealedTiles} diamantes e ganhou R$ ${(currentBet * currentMultiplier).toFixed(2)}!`;
-                }
+                message.textContent = `Você sacou no momento certo e ganhou R$ ${(currentBet * currentMultiplier).toFixed(2)}!`;
             } else {
                 content.className = 'result-content lose';
-                icon.textContent = '💣';
-                title.textContent = 'Você Perdeu!';
-                message.textContent = 'Você encontrou uma mina e perdeu sua aposta de R$ ' + currentBet.toFixed(2) + '.';
+                icon.textContent = '💥';
+                title.textContent = 'Crash!';
+                message.textContent = `O gráfico crashou em ${crashPoint.toFixed(2)}x. Você perdeu R$ ${currentBet.toFixed(2)}.`;
             }
             
-            // Mostrar o modal
             modal.style.display = 'flex';
         }
         
-        // Iniciar novo jogo ao clicar no botão
+        // Iniciar novo jogo
         document.getElementById('newGameBtn').addEventListener('click', function() {
             document.getElementById('resultModal').style.display = 'none';
             
             // Resetar controles
             document.getElementById('startGame').classList.remove('disabled');
-            document.getElementById('minesCount').disabled = false;
             document.getElementById('betAmount').disabled = false;
             
-            // Inicializar tabuleiro
-            initializeBoard();
+            // Redesenhar gráfico inicial
+            drawInitialGraph();
         });
         
         // Funções para gerenciar transações
@@ -650,12 +638,12 @@
                 amount: amount,
                 details: details,
                 date: new Date().toLocaleString('pt-BR'),
-                game: 'Mines',
+                game: 'Crash',
                 user: localStorage.getItem('currentUser')
             };
             
             const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
-            history.unshift(transaction); // Adicionar ao início do array
+            history.unshift(transaction);
             localStorage.setItem('transactionHistory', JSON.stringify(history));
             
             // Salvar log para planilha

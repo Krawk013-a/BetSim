@@ -351,6 +351,11 @@
                     <h3>Histórico</h3>
                     <p>Veja suas transações anteriores</p>
                 </div>
+                
+                <div class="bank-card" id="logsBtn">
+                    <h3>Logs do Sistema</h3>
+                    <p>Visualize logs de todos os usuários</p>
+                </div>
             </div>
         </div>
         
@@ -377,8 +382,18 @@
                     </div>
                 </div>
                 
-                <div class="game-card" id="rouletteGame">
+                <div class="game-card" id="crashGame">
                     <div class="game-img" style="background-color: #336633; display: flex; justify-content: center; align-items: center;">
+                        <span style="font-size: 40px;">📈</span>
+                    </div>
+                    <div class="game-info">
+                        <h3>Crash</h3>
+                        <p>Retire antes que o gráfico crash</p>
+                    </div>
+                </div>
+                
+                <div class="game-card" id="rouletteGame">
+                    <div class="game-img" style="background-color: #663366; display: flex; justify-content: center; align-items: center;">
                         <span style="font-size: 40px;">🎲</span>
                     </div>
                     <div class="game-info">
@@ -388,7 +403,7 @@
                 </div>
                 
                 <div class="game-card" id="slotsGame">
-                    <div class="game-img" style="background-color: #663366; display: flex; justify-content: center; align-items: center;">
+                    <div class="game-img" style="background-color: #666633; display: flex; justify-content: center; align-items: center;">
                         <span style="font-size: 40px;">🎰</span>
                     </div>
                     <div class="game-info">
@@ -529,6 +544,10 @@
         document.getElementById('historyBtn').addEventListener('click', function() {
             showTransactionHistory(); // Atualiza o histórico antes de abrir o modal
             document.getElementById('historyModal').style.display = 'flex';
+        });
+        
+        document.getElementById('logsBtn').addEventListener('click', function() {
+            window.location.href = 'logs.html';
         });
         
         // Fechar modais (clicando no X)
@@ -720,16 +739,20 @@
         });
         
         document.getElementById('aviatorGame').addEventListener('click', function() {
-            window.location.href = 'aviator.html'; // Você precisará criar o arquivo aviator.html
+            window.location.href = 'aviator.html';
         });
         
-        // Mensagens para jogos não implementados
+        document.getElementById('crashGame').addEventListener('click', function() {
+            window.location.href = 'crash.html';
+        });
+        
         document.getElementById('rouletteGame').addEventListener('click', function() {
-            alert('Jogo de Roleta em desenvolvimento para o TCC. Por favor, experimente o Mines ou o Aviator.');
+            window.location.href = 'roulette.html';
         });
         
+        // Mensagem para jogo não implementado
         document.getElementById('slotsGame').addEventListener('click', function() {
-            alert('Jogo de Slots em desenvolvimento para o TCC. Por favor, experimente o Mines ou o Aviator.');
+            alert('Jogo de Slots em desenvolvimento para o TCC. Por favor, experimente os outros jogos disponíveis.');
         });
 
          // --- Simulação de Aposta (Exemplo Básico para o Dashboard) ---

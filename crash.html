@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetSim - Crash</title>
+    <title>BetSim - Double</title>
     <style>
         * {
             margin: 0;
@@ -136,35 +136,23 @@
             font-size: 12px;
         }
         
-        .start-btn, .cashout-btn {
-            padding: 6px 12px;
+        .bet-btn {
+            padding: 8px 16px;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
             font-size: 12px;
-        }
-        
-        .start-btn {
-            background-color: #4CAF50;
+            border: none;
             color: #fff;
-            border: none;
         }
         
-        .start-btn:hover {
-            background-color: #45a049;
-        }
-        
-        .cashout-btn {
-            background-color: #FFC107;
-            color: #1e1e2e;
-            border: none;
-            display: none;
-        }
-        
-        .cashout-btn:hover {
-            background-color: #e6ac00;
-        }
+        .bet-btn-red { background-color: #ff5555; }
+        .bet-btn-red:hover { background-color: #ff2d2d; }
+        .bet-btn-black { background-color: #333; }
+        .bet-btn-black:hover { background-color: #1a1a1a; }
+        .bet-btn-white { background-color: #fff; color: #1e1e2e; }
+        .bet-btn-white:hover { background-color: #e6e6e6; }
         
         .disabled {
             opacity: 0.5;
@@ -176,66 +164,116 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
-        }
-        
-        .crash-graph {
             background-color: #2a2a40;
             border-radius: 10px;
             padding: 15px;
-            margin-bottom: 15px;
-            flex: 1;
+            align-items: center;
+            justify-content: center;
             position: relative;
-            overflow: hidden;
         }
-        
-        .graph-canvas {
-            width: 100%;
-            height: 100%;
-            background-color: #1e1e2e;
-            border-radius: 5px;
-        }
-        
-        .crash-value {
+
+        .previous-results {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 24px;
-            font-weight: bold;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .result-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #555;
+        }
+        .dot-red { background-color: #ff5555; }
+        .dot-black { background-color: #333; }
+        .dot-white { background-color: #fff; }
+
+        .timer {
+            font-size: 18px;
+            margin-bottom: 20px;
             color: #FFC107;
+            font-weight: bold;
+        }
+
+        .roulette-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .roulette-pointer {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid #FFC107;
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 10;
         }
-        
-        .game-info {
-            background-color: #2a2a40;
-            padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            flex-shrink: 0;
+
+        .roulette-wheel {
+            width: 100%;
+            height: 100%;
+            border: 5px solid #333350;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
-        
-        .multiplier {
-            font-size: 18px;
-            font-weight: bold;
-            color: #FFC107;
-            text-align: center;
-            margin-bottom: 5px;
+
+        .roulette-wheel::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(
+                #fff 0deg 24deg,
+                #ff5555 24deg 48deg, #333 48deg 72deg, #ff5555 72deg 96deg,
+                #333 96deg 120deg, #ff5555 120deg 144deg, #333 144deg 168deg,
+                #ff5555 168deg 192deg, #333 192deg 216deg, #ff5555 216deg 240deg,
+                #333 240deg 264deg, #ff5555 264deg 288deg, #333 288deg 312deg,
+                #ff5555 312deg 336deg, #333 336deg 360deg
+            );
         }
-        
-        .potential-win {
+
+        .wheel-number {
+            position: absolute;
+            width: 100%;
+            height: 100%;
             font-size: 14px;
-            color: #4CAF50;
+            font-weight: bold;
+            transform: rotate(var(--angle));
             text-align: center;
         }
-        
+
+        .wheel-number span {
+            display: block;
+            transform: rotate(90deg);
+            margin-top: 10px;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+        }
+
+        .wheel-number.white span { color: #1e1e2e; text-shadow: none; }
+
         .result-modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.8);
-            z-index: 10;
+            z-index: 20;
             align-items: center;
             justify-content: center;
         }
@@ -288,18 +326,6 @@
         .lose .result-icon, .lose .result-title {
             color: #ff6b6b;
         }
-        
-        .crash-line {
-            stroke: #FFC107;
-            stroke-width: 3;
-            fill: none;
-        }
-        
-        .crash-point {
-            fill: #FFC107;
-            stroke: #fff;
-            stroke-width: 2;
-        }
     </style>
 </head>
 <body>
@@ -318,7 +344,7 @@
     <div class="main-content">
         <div class="game-header">
             <div class="game-title">
-                <span>📈</span> Crash
+                <span>🔄</span> Double
             </div>
             
             <div class="game-controls">
@@ -327,41 +353,39 @@
                     <input type="number" id="betAmount" value="10" min="1" step="1">
                 </div>
                 
-                <button class="start-btn" id="startGame">Fazer Aposta</button>
-                <button class="cashout-btn" id="cashoutBtn">Sacar R$ 0,00</button>
+                <button class="bet-btn bet-btn-red" data-color="red">Apostar 2x</button>
+                <button class="bet-btn bet-btn-black" data-color="black">Apostar 2x</button>
+                <button class="bet-btn bet-btn-white" data-color="white">Apostar 14x</button>
             </div>
         </div>
         
         <div class="game-container">
-            <div class="crash-graph">
-                <canvas id="crashCanvas" class="graph-canvas"></canvas>
-                <div class="crash-value" id="crashValue">1.00x</div>
-            </div>
-            
-            <div class="game-info">
-                <div class="multiplier" id="multiplier">Multiplicador: 1.00x</div>
-                <div class="potential-win" id="potentialWin">Ganho Potencial: R$ 0,00</div>
+            <div class="previous-results" id="previousResults"></div>
+            <div class="timer" id="timer">Faça sua aposta!</div>
+            <div class="roulette-container">
+                <div class="roulette-pointer"></div>
+                <div class="roulette-wheel" id="rouletteWheel">
+                    </div>
             </div>
         </div>
     </div>
     
     <div class="result-modal" id="resultModal">
         <div class="result-content" id="resultContent">
-            <div class="result-icon" id="resultIcon">📈</div>
+            <div class="result-icon" id="resultIcon">🎉</div>
             <div class="result-title" id="resultTitle">Você Ganhou!</div>
-            <div class="result-message" id="resultMessage">Você sacou no momento certo e ganhou R$ 50,00!</div>
-            <button class="result-btn" id="newGameBtn">Novo Jogo</button>
+            <div class="result-message" id="resultMessage">Você ganhou R$ 20,00!</div>
+            <button class="result-btn" id="newGameBtn">Nova Rodada</button>
         </div>
     </div>
 
     <script>
-        // Verificar se o usuário está logado
         document.addEventListener('DOMContentLoaded', function() {
             const currentUser = localStorage.getItem('currentUser');
             const userBalance = localStorage.getItem('userBalance') || '0.00';
             
             if (!currentUser) {
-                window.location.href = 'login.html';
+                window.location.href = 'login.html'; // Redireciona se não estiver logado
                 return;
             }
             
@@ -371,65 +395,55 @@
             initializeGame();
         });
         
-        // Botão de voltar
         document.getElementById('backBtn').addEventListener('click', function() {
             window.location.href = 'dashboard.html';
         });
-        
-        // Variáveis do jogo
+
+        // --- Variáveis do Jogo Double ---
         let gameActive = false;
-        let betPlaced = false;
         let currentBet = 0;
-        let currentMultiplier = 1;
-        let potentialWin = 0;
-        let crashPoint = 1;
-        let animationId;
-        let canvas, ctx;
-        
+        let selectedColor = '';
+        let timerInterval;
+        const wheel = document.getElementById('rouletteWheel');
+        const timerDisplay = document.getElementById('timer');
+        const betButtons = document.querySelectorAll('.bet-btn');
+        const betAmountInput = document.getElementById('betAmount');
+        const previousResultsContainer = document.getElementById('previousResults');
+
+        // Configuração da roleta: número -> cor
+        const wheelSegments = [
+            { num: 0, color: 'white' }, { num: 1, color: 'red' }, { num: 2, color: 'black' },
+            { num: 3, color: 'red' }, { num: 4, color: 'black' }, { num: 5, color: 'red' },
+            { num: 6, color: 'black' }, { num: 7, color: 'red' }, { num: 8, color: 'black' },
+            { num: 9, color: 'red' }, { num: 10, color: 'black' }, { num: 11, color: 'red' },
+            { num: 12, color: 'black' }, { num: 13, color: 'red' }, { num: 14, color: 'black' }
+        ];
+
         function initializeGame() {
-            canvas = document.getElementById('crashCanvas');
-            ctx = canvas.getContext('2d');
-            
-            // Ajustar tamanho do canvas
-            function resizeCanvas() {
-                const container = canvas.parentElement;
-                canvas.width = container.clientWidth - 30;
-                canvas.height = container.clientHeight - 30;
-            }
-            
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            
-            drawInitialGraph();
+            // Desenha os números na roleta
+            const segmentAngle = 360 / wheelSegments.length;
+            wheelSegments.forEach((seg, i) => {
+                const angle = i * segmentAngle;
+                const numberDiv = document.createElement('div');
+                numberDiv.className = `wheel-number ${seg.color}`;
+                numberDiv.style.setProperty('--angle', `${angle}deg`);
+                numberDiv.innerHTML = `<span>${seg.num}</span>`;
+                wheel.appendChild(numberDiv);
+            });
+            updatePreviousResults();
         }
-        
-        function drawInitialGraph() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Desenhar grade
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
-            
-            for (let i = 0; i <= 10; i++) {
-                const x = (canvas.width / 10) * i;
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
-                
-                const y = (canvas.height / 10) * i;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
-        }
-        
-        // Iniciar jogo
-        document.getElementById('startGame').addEventListener('click', function() {
-            if (gameActive) return;
-            
-            const betAmount = parseFloat(document.getElementById('betAmount').value);
+
+        // Adiciona listeners para os botões de aposta
+        betButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                if (gameActive) return;
+                const color = button.getAttribute('data-color');
+                placeBet(color);
+            });
+        });
+
+        function placeBet(color) {
+            const betAmount = parseFloat(betAmountInput.value);
             const userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
             
             if (isNaN(betAmount) || betAmount <= 0) {
@@ -441,196 +455,134 @@
                 alert('Saldo insuficiente para realizar esta aposta.');
                 return;
             }
-            
-            // Atualizar saldo
+
+            // Deduz a aposta e atualiza o saldo
             const newBalance = userBalance - betAmount;
             localStorage.setItem('userBalance', newBalance.toString());
             document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
             
-            // Registrar transação
-            addTransaction('Aposta - Crash', -betAmount, 'Início de jogo');
+            addTransaction('Aposta - Double', -betAmount, `Apostou em ${color}`);
             
-            // Inicializar variáveis do jogo
+            // Configura o estado do jogo
             gameActive = true;
-            betPlaced = true;
             currentBet = betAmount;
-            currentMultiplier = 1;
-            crashPoint = generateCrashPoint();
-            
-            // Atualizar interface
-            document.getElementById('startGame').classList.add('disabled');
-            document.getElementById('betAmount').disabled = true;
-            document.getElementById('cashoutBtn').style.display = 'block';
-            
-            // Iniciar animação
-            startCrashAnimation();
-        });
-        
-        function generateCrashPoint() {
-            // Gerar ponto de crash aleatório (entre 1.0x e 10.0x)
-            return Math.random() * 9 + 1;
+            selectedColor = color;
+
+            // Desabilita controles e inicia a rodada
+            toggleControls(true);
+            startRound();
         }
-        
-        function startCrashAnimation() {
-            let time = 0;
-            const duration = 5000; // 5 segundos
+
+        function startRound() {
+            let countdown = 5;
+            timerDisplay.textContent = `Girando em ${countdown}...`;
             
-            function animate() {
-                time += 16; // ~60fps
-                const progress = time / duration;
-                
-                if (progress >= 1) {
-                    // Crash aconteceu
-                    gameActive = false;
-                    document.getElementById('cashoutBtn').style.display = 'none';
-                    showResult(false);
-                    return;
+            timerInterval = setInterval(() => {
+                countdown--;
+                timerDisplay.textContent = `Girando em ${countdown}...`;
+                if (countdown <= 0) {
+                    clearInterval(timerInterval);
+                    spinWheel();
                 }
-                
-                // Calcular multiplicador atual
-                currentMultiplier = 1 + (crashPoint - 1) * progress;
-                potentialWin = currentBet * currentMultiplier;
-                
-                // Atualizar interface
-                updateGameInfo();
-                drawCrashGraph(progress);
-                
-                if (gameActive) {
-                    animationId = requestAnimationFrame(animate);
-                }
-            }
-            
-            animate();
+            }, 1000);
         }
-        
-        function drawCrashGraph(progress) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        function spinWheel() {
+            timerDisplay.textContent = 'Girando...';
             
-            // Desenhar grade
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
-            
-            for (let i = 0; i <= 10; i++) {
-                const x = (canvas.width / 10) * i;
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
-                
-                const y = (canvas.height / 10) * i;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(canvas.width, y);
-                ctx.stroke();
-            }
-            
-            // Desenhar linha do crash
-            ctx.strokeStyle = '#FFC107';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height);
-            
-            for (let i = 0; i <= progress * 100; i++) {
-                const x = (canvas.width / 100) * i;
-                const multiplier = 1 + (crashPoint - 1) * (i / 100);
-                const y = canvas.height - (multiplier - 1) * (canvas.height / 10);
-                ctx.lineTo(x, y);
-            }
-            
-            ctx.stroke();
-            
-            // Desenhar ponto atual
-            const currentX = canvas.width * progress;
-            const currentY = canvas.height - (currentMultiplier - 1) * (canvas.height / 10);
-            
-            ctx.fillStyle = '#FFC107';
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(currentX, currentY, 5, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
+            // Gera resultado e calcula rotação
+            const winningNumber = Math.floor(Math.random() * 15); // 0-14
+            const winningSegment = wheelSegments.findIndex(s => s.num === winningNumber);
+            const segmentAngle = 360 / wheelSegments.length;
+            const targetRotation = (360 * 5) - (winningSegment * segmentAngle) - (segmentAngle / 2); // 5 voltas + posição
+
+            wheel.style.transform = `rotate(${targetRotation}deg)`;
+
+            setTimeout(() => {
+                endRound(winningNumber);
+            }, 5500); // Tempo para a animação terminar
         }
-        
-        function updateGameInfo() {
-            document.getElementById('multiplier').textContent = `Multiplicador: ${currentMultiplier.toFixed(2)}x`;
-            document.getElementById('potentialWin').textContent = `Ganho Potencial: R$ ${potentialWin.toFixed(2)}`;
-            document.getElementById('cashoutBtn').textContent = `Sacar R$ ${potentialWin.toFixed(2)}`;
-            document.getElementById('crashValue').textContent = `${currentMultiplier.toFixed(2)}x`;
-        }
-        
-        // Função de cashout
-        document.getElementById('cashoutBtn').addEventListener('click', function() {
-            if (!gameActive || !betPlaced) return;
-            cashout();
-        });
-        
-        function cashout() {
-            // Finalizar o jogo
-            gameActive = false;
-            betPlaced = false;
+
+        function endRound(winningNumber) {
+            const winningColor = wheelSegments.find(s => s.num === winningNumber).color;
+            timerDisplay.textContent = `Resultado: ${winningNumber} (${winningColor.charAt(0).toUpperCase() + winningColor.slice(1)})`;
             
-            // Calcular o ganho
-            const winAmount = currentBet * currentMultiplier;
-            
-            // Atualizar saldo
-            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-            const newBalance = currentBalance + winAmount;
-            localStorage.setItem('userBalance', newBalance.toString());
-            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-            
-            // Registrar transação
-            addTransaction('Ganho - Crash', winAmount, `Multiplicador: ${currentMultiplier.toFixed(2)}x`);
-            
-            // Parar animação
-            if (animationId) {
-                cancelAnimationFrame(animationId);
+            let winAmount = 0;
+            let isWin = false;
+
+            if (selectedColor === winningColor) {
+                isWin = true;
+                const multiplier = winningColor === 'white' ? 14 : 2;
+                winAmount = currentBet * multiplier;
+
+                // Adiciona o ganho ao saldo
+                const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+                const newBalance = currentBalance + winAmount;
+                localStorage.setItem('userBalance', newBalance.toString());
+                document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
+
+                addTransaction('Ganho - Double', winAmount, `Ganhou com a cor ${winningColor}`);
             }
-            
-            // Resetar controles
-            document.getElementById('startGame').classList.remove('disabled');
-            document.getElementById('betAmount').disabled = false;
-            document.getElementById('cashoutBtn').style.display = 'none';
-            
-            showResult(true);
+
+            saveLastResult(winningColor);
+            updatePreviousResults();
+            showResult(isWin, winAmount, winningColor);
         }
-        
-        // Mostrar modal de resultado
-        function showResult(isWin) {
+
+        function showResult(isWin, winAmount, winningColor) {
             const modal = document.getElementById('resultModal');
             const content = document.getElementById('resultContent');
             const icon = document.getElementById('resultIcon');
             const title = document.getElementById('resultTitle');
             const message = document.getElementById('resultMessage');
-            
+
             if (isWin) {
                 content.className = 'result-content win';
-                icon.textContent = '📈';
+                icon.textContent = '🎉';
                 title.textContent = 'Você Ganhou!';
-                message.textContent = `Você sacou no momento certo e ganhou R$ ${(currentBet * currentMultiplier).toFixed(2)}!`;
+                message.textContent = `Parabéns! A cor sorteada foi ${winningColor} e você ganhou R$ ${winAmount.toFixed(2)}!`;
             } else {
                 content.className = 'result-content lose';
-                icon.textContent = '💥';
-                title.textContent = 'Crash!';
-                message.textContent = `O gráfico crashou em ${crashPoint.toFixed(2)}x. Você perdeu R$ ${currentBet.toFixed(2)}.`;
+                icon.textContent = '😢';
+                title.textContent = 'Você Perdeu!';
+                message.textContent = `A cor sorteada foi ${winningColor}. Mais sorte na próxima vez! Você perdeu R$ ${currentBet.toFixed(2)}.`;
             }
             
             modal.style.display = 'flex';
         }
         
-        // Iniciar novo jogo
         document.getElementById('newGameBtn').addEventListener('click', function() {
             document.getElementById('resultModal').style.display = 'none';
-            
-            // Resetar controles
-            document.getElementById('startGame').classList.remove('disabled');
-            document.getElementById('betAmount').disabled = false;
-            
-            // Redesenhar gráfico inicial
-            drawInitialGraph();
+            resetGame();
         });
+
+        function resetGame() {
+            gameActive = false;
+            currentBet = 0;
+            selectedColor = '';
+            toggleControls(false);
+            timerDisplay.textContent = 'Faça sua aposta!';
+            
+            // Reseta a rotação da roleta sem animação
+            wheel.style.transition = 'none';
+            wheel.style.transform = 'rotate(0deg)';
+            // Força o reflow para aplicar a mudança de transição imediatamente
+            wheel.offsetHeight; 
+            wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+        }
+
+        function toggleControls(disabled) {
+            betAmountInput.disabled = disabled;
+            betButtons.forEach(button => {
+                if (disabled) {
+                    button.classList.add('disabled');
+                } else {
+                    button.classList.remove('disabled');
+                }
+            });
+        }
         
-        // Funções para gerenciar transações
+        // --- Funções de Histórico e Transações (Reutilizadas do jogo Crash) ---
         function addTransaction(type, amount, details) {
             const transaction = {
                 id: Date.now(),
@@ -638,7 +590,7 @@
                 amount: amount,
                 details: details,
                 date: new Date().toLocaleString('pt-BR'),
-                game: 'Crash',
+                game: 'Double',
                 user: localStorage.getItem('currentUser')
             };
             
@@ -646,11 +598,9 @@
             history.unshift(transaction);
             localStorage.setItem('transactionHistory', JSON.stringify(history));
             
-            // Salvar log para planilha
             saveGameLog(transaction);
         }
-        
-        // Função para salvar log do jogo
+
         function saveGameLog(transaction) {
             const gameLog = JSON.parse(localStorage.getItem('gameLog') || '[]');
             gameLog.push({
@@ -659,6 +609,25 @@
                 sessionId: Date.now()
             });
             localStorage.setItem('gameLog', JSON.stringify(gameLog));
+        }
+
+        function saveLastResult(color) {
+            const lastResults = JSON.parse(localStorage.getItem('doubleLastResults') || '[]');
+            lastResults.unshift(color);
+            if (lastResults.length > 10) { // Manter apenas os últimos 10 resultados
+                lastResults.pop();
+            }
+            localStorage.setItem('doubleLastResults', JSON.stringify(lastResults));
+        }
+
+        function updatePreviousResults() {
+            previousResultsContainer.innerHTML = '';
+            const lastResults = JSON.parse(localStorage.getItem('doubleLastResults') || '[]');
+            lastResults.forEach(color => {
+                const dot = document.createElement('div');
+                dot.className = `result-dot dot-${color}`;
+                previousResultsContainer.appendChild(dot);
+            });
         }
     </script>
 </body>

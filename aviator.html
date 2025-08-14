@@ -441,146 +441,130 @@
     </div>
 
     <script>
-        // Verificar se o usuário está logado ao carregar a página
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentUser = localStorage.getItem('currentUser');
-            const userBalance = localStorage.getItem('userBalance') || '0.00';
-            
-            if (!currentUser) {
-                // Redirecionar para a página de login se não estiver logado
-                window.location.href = 'index.html'; // Ajuste para o nome do seu arquivo de login
+        function authHeaders() {
+            const token = localStorage.getItem('authToken');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : '',
+                'X-Session-Id': localStorage.getItem('sessionId') || ''
+            };
+        }
+
+        async function api(path, method = 'GET', body) {
+            const res = await fetch(path, {
+                method,
+                headers: authHeaders(),
+                body: body ? JSON.stringify(body) : undefined
+            });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                }
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || 'Erro de conexão');
+            }
+            return res.json().catch(() => ({}));
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!localStorage.getItem('authToken')) {
+                window.location.href = 'login.html';
                 return;
             }
-            
-            // Exibir informações do usuário
-            document.getElementById('username').textContent = currentUser;
-            document.getElementById('userBalance').textContent = `R$ ${parseFloat(userBalance).toFixed(2)}`;
-            
-            // Carregar rodadas anteriores ou gerar aleatórias se não existirem
+            if (!localStorage.getItem('sessionId')) {
+                const sid = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem('sessionId', sid);
+            }
+            try {
+                const me = await api('/api/me');
+                localStorage.setItem('currentUser', me.username);
+                localStorage.setItem('userBalance', String(me.balance || 0));
+                document.getElementById('username').textContent = me.username;
+                document.getElementById('userBalance').textContent = `R$ ${parseFloat(me.balance || 0).toFixed(2)}`;
+            } catch (e) { return; }
             loadPreviousRounds();
-
-            // Inicializar o estado dos botões e inputs
             resetGameState();
         });
         
-        // Botão de voltar para o dashboard
         document.getElementById('backBtn').addEventListener('click', function() {
-            // Antes de voltar, garantir que o jogo não está ativo para evitar estados estranhos
             if (gameActive) {
-                // Opcional: mostrar um alerta "Jogo em andamento, tem certeza?"
                 if (!confirm("Um jogo está em andamento. Tem certeza que deseja sair? Sua aposta será perdida se você não tiver sacado.")) {
-                    return; // Cancela a volta se o usuário não confirmar
+                    return;
                 }
-                 // Se o usuário confirmar e ainda não sacou, a aposta é perdida
-                 if (!hasUserCashedOut) {
-                     // Não precisa fazer nada com o saldo aqui, pois já foi subtraído ao apostar
-                     addTransaction('Perda - Aviator', -currentBet, 'Saiu durante o jogo'); // Registrar a perda
-                 }
-                 clearInterval(gameInterval); // Parar o loop do jogo
-                 gameActive = false; // Marcar jogo como inativo
+                if (!hasUserCashedOut && currentBet > 0) {
+                    addTransaction('Perda - Aviator', -currentBet, 'Saiu durante o jogo');
+                }
+                clearInterval(gameInterval);
+                gameActive = false;
             }
-             window.location.href = 'dashboard.html'; // Ajuste para o nome do seu arquivo do dashboard
+            window.location.href = 'dashboard.html';
         });
         
-        // Variáveis do jogo
         let gameActive = false;
         let currentBet = 0;
         let currentMultiplier = 1.00;
         let gameInterval;
-        let crashPoint; // O multiplicador no qual o avião vai "cair"
-        let hasUserCashedOut = false; // Indica se o usuário clicou em sacar
+        let crashPoint;
+        let hasUserCashedOut = false;
         let autoCashoutEnabled = false;
-        let autoCashoutValue = 2.0; // Multiplicador para o auto-cashout
-        // Usaremos localStorage para persistir as rodadas anteriores (simulação)
+        let autoCashoutValue = 2.0;
         const previousRoundsKey = 'aviatorPreviousRounds';
-        const maxPreviousRounds = 10; // Limite de rodadas a serem exibidas/armazenadas
+        const maxPreviousRounds = 10;
         
-        // Carregar ou gerar rodadas anteriores
         function loadPreviousRounds() {
              const storedRounds = localStorage.getItem(previousRoundsKey);
              let rounds = storedRounds ? JSON.parse(storedRounds) : [];
-
-             // Se não houver rodadas armazenadas, gerar algumas aleatoriamente para a demonstração
              if (rounds.length === 0) {
                 for (let i = 0; i < maxPreviousRounds; i++) {
                     rounds.push(generateRandomMultiplier());
                 }
-                // Opcional: salvar as rodadas geradas inicialmente
                  localStorage.setItem(previousRoundsKey, JSON.stringify(rounds));
              }
-
-             // Limitar o número de rodadas exibidas
              updatePreviousRoundsList(rounds.slice(0, maxPreviousRounds));
         }
         
-        // Gerar multiplicador aleatório para demonstração
         function generateRandomMultiplier() {
-            // Esta é uma fórmula simplificada para simular o comportamento do Aviator
-            // Em um sistema real, haveria algoritmos mais complexos e verdadeiramente aleatórios/imprevisíveis
-            // A distribuição da probabilidade de crash em diferentes multiplicadores
-            
             const randomValue = Math.random();
-
-            // Pequena chance de crashar muito cedo (abaixo de 1.2x)
-            if (randomValue < 0.1) { // 10% de chance
-                 return 1 + Math.random() * 0.19; // Entre 1.00 e 1.19
-            }
-            // Chance maior de crashar entre 1.2x e 2.0x
-            else if (randomValue < 0.6) { // 50% de chance (0.6 - 0.1)
-                return 1.2 + Math.random() * 0.8; // Entre 1.20 e 2.00
-            }
-             // Chance moderada de crashar entre 2.0x e 5.0x
-            else if (randomValue < 0.9) { // 30% de chance (0.9 - 0.6)
-                 return 2.0 + Math.random() * 3.0; // Entre 2.00 e 5.00
-            }
-            // Pequena chance de crashar acima de 5.0x
-            else { // 10% de chance (1.0 - 0.9)
-                 return 5.0 + Math.random() * 20.0; // Entre 5.00 e 25.00 (pode ajustar o limite superior)
-            }
+            if (randomValue < 0.1) { return 1 + Math.random() * 0.19; }
+            else if (randomValue < 0.6) { return 1.2 + Math.random() * 0.8; }
+            else if (randomValue < 0.9) { return 2.0 + Math.random() * 3.0; }
+            else { return 5.0 + Math.random() * 20.0; }
         }
         
-        // Atualizar lista de rodadas anteriores no HTML
         function updatePreviousRoundsList(roundsToShow) {
             const list = document.getElementById('previousRoundsList');
-            list.innerHTML = ''; // Limpa a lista atual
-            
+            list.innerHTML = '';
             roundsToShow.forEach(multiplier => {
                 const item = document.createElement('li');
-                // Determina a classe CSS com base no valor do multiplicador
-                item.className = parseFloat(multiplier) < 2.0 ? 'round-item round-lose' : 'round-item round-win'; // Exemplo: considerar 'vitória' acima de 2x
-                item.textContent = `${parseFloat(multiplier).toFixed(2)}x`; // Formata para 2 casas decimais
+                item.className = parseFloat(multiplier) < 2.0 ? 'round-item round-lose' : 'round-item round-win';
+                item.textContent = `${parseFloat(multiplier).toFixed(2)}x`;
                 list.appendChild(item);
             });
         }
 
-        // Adicionar uma nova rodada à lista (chamada no final de cada jogo)
         function addNewRoundToHistory(multiplier) {
              const storedRounds = localStorage.getItem(previousRoundsKey);
              let rounds = storedRounds ? JSON.parse(storedRounds) : [];
-
-             rounds.unshift(multiplier); // Adiciona o novo multiplicador no início
-             
-             // Limitar o histórico
+             rounds.unshift(multiplier);
              if (rounds.length > maxPreviousRounds) {
                  rounds = rounds.slice(0, maxPreviousRounds);
              }
-
-             localStorage.setItem(previousRoundsKey, JSON.stringify(rounds)); // Salva no localStorage
-             updatePreviousRoundsList(rounds); // Atualiza a lista na UI
+             localStorage.setItem(previousRoundsKey, JSON.stringify(rounds));
+             updatePreviousRoundsList(rounds);
         }
 
-        // Resetar o estado visual do jogo para a próxima rodada
         function resetGameState() {
              gameActive = false;
              currentBet = 0;
              currentMultiplier = 1.00;
              hasUserCashedOut = false;
-             clearInterval(gameInterval); // Garante que qualquer intervalo anterior seja parado
+             clearInterval(gameInterval);
 
             document.getElementById('multiplierDisplay').textContent = '1.00x';
             document.getElementById('crashedDisplay').style.display = 'none';
-            document.getElementById('airplane').textContent = '✈️'; // Resetar emoji do avião
-            document.getElementById('airplane').style.transition = 'all 0.5s ease'; // Transição suave para o reset
+            document.getElementById('airplane').textContent = '✈️';
+            document.getElementById('airplane').style.transition = 'all 0.5s ease';
             document.getElementById('airplane').style.left = '10%';
             document.getElementById('airplane').style.bottom = '20%';
             document.getElementById('airplane').style.transform = 'rotate(0deg)';
@@ -592,303 +576,164 @@
             document.getElementById('autoCashoutValue').disabled = false;
 
             document.getElementById('placeBetBtn').classList.remove('disabled');
-            document.getElementById('cashoutBtn').classList.add('disabled'); // Desabilita o botão de sacar
+            document.getElementById('cashoutBtn').classList.add('disabled');
         }
 
-
-        // Iniciar jogo ao clicar no botão de aposta
-        document.getElementById('placeBetBtn').addEventListener('click', function() {
-            if (gameActive || this.classList.contains('disabled')) return; // Impede múltiplas apostas ou se desabilitado
-            
+        document.getElementById('placeBetBtn').addEventListener('click', async function() {
+            if (gameActive || this.classList.contains('disabled')) return;
             const betAmountInput = document.getElementById('betAmount');
             const betAmount = parseFloat(betAmountInput.value);
-            let userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-            
+            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
             autoCashoutEnabled = document.getElementById('autoCashoutEnabled').checked;
             autoCashoutValue = parseFloat(document.getElementById('autoCashoutValue').value);
-            
-            // Validar aposta e auto-cashout
-            if (isNaN(betAmount) || betAmount <= 0) {
-                alert('Por favor, insira um valor de aposta válido.');
+            if (isNaN(betAmount) || betAmount <= 0) { alert('Por favor, insira um valor de aposta válido.'); return; }
+            if (autoCashoutEnabled && (isNaN(autoCashoutValue) || autoCashoutValue < 1.1)) { alert('Por favor, insira um valor de Auto-Cashout válido (mínimo 1.1).'); return; }
+            if (betAmount > currentBalance) { alert('Saldo insuficiente para realizar esta aposta.'); return; }
+            try {
+                const resp = await api('/api/game-transaction', 'POST', { type: 'Aposta', amount: -betAmount, details: `Aposta de R$ ${betAmount.toFixed(2)}`, game: 'Aviator' });
+                localStorage.setItem('userBalance', String(resp.balance));
+                document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
+            } catch (e) {
+                alert(e.message);
                 return;
             }
-
-             if (autoCashoutEnabled && (isNaN(autoCashoutValue) || autoCashoutValue < 1.1)) {
-                 alert('Por favor, insira um valor de Auto-Cashout válido (mínimo 1.1).');
-                 return;
-             }
-            
-            if (betAmount > userBalance) {
-                alert('Saldo insuficiente para realizar esta aposta.');
-                return;
-            }
-            
-            // Subtrair a aposta do saldo (é subtraído no início do jogo)
-            userBalance -= betAmount;
-            localStorage.setItem('userBalance', userBalance.toString());
-            document.getElementById('userBalance').textContent = `R$ ${userBalance.toFixed(2)}`;
-            
-            // Registrar transação de aposta
-            addTransaction('Aposta - Aviator', -betAmount, `Aposta de R$ ${betAmount.toFixed(2)}`);
-            
-            // Inicializar variáveis do jogo para a nova rodada
             gameActive = true;
             currentBet = betAmount;
             currentMultiplier = 1.00;
             hasUserCashedOut = false;
-            
-            // Determinar ponto de crash para esta rodada
             crashPoint = determineCrashPoint();
-            console.log("Próximo crash em:", crashPoint.toFixed(2) + 'x'); // Para debug
-
-            // Resetar alguns elementos visuais para o início da rodada
-             document.getElementById('multiplierDisplay').textContent = '1.00x';
-             document.getElementById('crashedDisplay').style.display = 'none';
-             document.getElementById('airplane').textContent = '✈️'; // Voltar emoji do avião
-             document.getElementById('airplane').style.transition = 'all 0.05s linear'; // Define a transição para o voo
-
-            // Atualizar interface dos botões e inputs
+            document.getElementById('multiplierDisplay').textContent = '1.00x';
+            document.getElementById('crashedDisplay').style.display = 'none';
+            document.getElementById('airplane').textContent = '✈️';
+            document.getElementById('airplane').style.transition = 'all 0.05s linear';
             document.getElementById('placeBetBtn').style.display = 'none';
             document.getElementById('cashoutBtn').style.display = 'block';
-             document.getElementById('cashoutBtn').classList.remove('disabled'); // Habilita o botão de sacar
-
+            document.getElementById('cashoutBtn').classList.remove('disabled');
             document.getElementById('betAmount').disabled = true;
             document.getElementById('autoCashoutEnabled').disabled = true;
             document.getElementById('autoCashoutValue').disabled = true;
-
-            // Iniciar o loop do jogo
             startGameLoop();
         });
         
-        // Determinar ponto de crash (função já fornecida, pode ser ajustada)
         function determineCrashPoint() {
              const randomValue = Math.random();
              let point;
-
-             if (randomValue < 0.1) { // 10% chance < 1.2x
-                 point = 1 + Math.random() * 0.19;
-             } else if (randomValue < 0.6) { // 50% chance 1.2x to 2.0x
-                 point = 1.2 + Math.random() * 0.8;
-             } else if (randomValue < 0.9) { // 30% chance 2.0x to 5.0x
-                 point = 2.0 + Math.random() * 3.0;
-             } else { // 10% chance > 5.0x
-                 point = 5.0 + Math.random() * 20.0;
-             }
-             
-             // Garantir que o ponto mínimo é 1.01 (avião sempre "decola" um pouco)
+             if (randomValue < 0.1) { point = 1 + Math.random() * 0.19; }
+             else if (randomValue < 0.6) { point = 1.2 + Math.random() * 0.8; }
+             else if (randomValue < 0.9) { point = 2.0 + Math.random() * 3.0; }
+             else { point = 5.0 + Math.random() * 20.0; }
              return Math.max(1.01, point);
         }
         
-        // Iniciar o loop principal do jogo (animação e lógica)
         function startGameLoop() {
             const airplane = document.getElementById('airplane');
             const multiplierDisplay = document.getElementById('multiplierDisplay');
             const crashedDisplay = document.getElementById('crashedDisplay');
-            
-            let startTime = Date.now(); // Tempo de início da rodada
-            const fps = 60; // Frames por segundo para a animação
-            const interval = 1000 / fps; // Intervalo entre cada frame
-            
-            // Resetar a transição do avião para o movimento real
+            let startTime = Date.now();
+            const fps = 60;
+            const interval = 1000 / fps;
             airplane.style.transition = `all ${interval / 1000}s linear`;
-
             gameInterval = setInterval(function() {
-                // Calcular o tempo decorrido
                 const elapsedSeconds = (Date.now() - startTime) / 1000;
-                
-                // Calcular o multiplicador. A curva de crescimento é crucial para a simulação.
-                // Esta é uma função de exemplo (exponencial simplificada):
-                // Multiplicador = 1 + (tempo_em_segundos * fator_velocidade)^fator_curva
-                const speedFactor = 0.5; // Quão rápido o multiplicador aumenta com o tempo
-                const curveFactor = 1.2; // Quão curva é a aceleração (maior valor = mais rápido o crescimento acelera)
+                const speedFactor = 0.5;
+                const curveFactor = 1.2;
                 currentMultiplier = 1 + Math.pow(elapsedSeconds * speedFactor, curveFactor);
-
-                // Limitar o multiplicador para evitar números absurdamente altos (opcional, mas realista)
-                 currentMultiplier = Math.min(currentMultiplier, 1000); // Limite arbitrário de 1000x
-
-                // Atualizar display do multiplicador
+                 currentMultiplier = Math.min(currentMultiplier, 1000);
                  if (currentMultiplier < 2.0) {
-                      multiplierDisplay.style.color = '#FFC107'; // Amarelo
+                      multiplierDisplay.style.color = '#FFC107';
                  } else if (currentMultiplier < 10.0) {
-                      multiplierDisplay.style.color = '#4CAF50'; // Verde
+                      multiplierDisplay.style.color = '#4CAF50';
                  } else {
-                      multiplierDisplay.style.color = '#00BCD4'; // Azul/Ciano para multiplicadores altos
+                      multiplierDisplay.style.color = '#00BCD4';
                  }
                 multiplierDisplay.textContent = currentMultiplier.toFixed(2) + 'x';
-                
-                // Animar o avião (posição e rotação)
-                // Ajuste as fórmulas para a animação para que fiquem mais suaves e realistas
-                const maxTranslateX = 60; // Movimento horizontal máximo percentual
-                const maxTranslateY = 60; // Movimento vertical máximo percentual (para cima)
-                const maxRotation = 30; // Rotação máxima em graus
-                
-                const progress = Math.min(1, elapsedSeconds / (crashPoint / speedFactor)); // Progresso em relação ao crash point simulado
-                
-                const xPos = 10 + (progress * maxTranslateX); // Move da esquerda para a direita
-                const yPos = 20 + (progress * maxTranslateY * Math.sin(progress * Math.PI)); // Sobe e curva suavemente (exemplo)
-                const rotation = progress * maxRotation; // Gira conforme sobe
-
-                // Interpolar suavemente as posições
-                airplane.style.left = `${airplane.offsetLeft / airplane.parentElement.offsetWidth * 100 + (xPos - airplane.offsetLeft / airplane.parentElement.offsetWidth * 100) * 0.1}%`;
-                airplane.style.bottom = `${airplane.offsetBottom / airplane.parentElement.offsetHeight * 100 + (yPos - airplane.offsetBottom / airplane.parentElement.offsetHeight * 100) * 0.1}%`;
-                 // Interpolar suavemente a rotação
-                 const currentRotation = parseFloat(airplane.style.transform.replace('rotate(', '').replace('deg)', '') || '0');
-                 airplane.style.transform = `rotate(${currentRotation + (rotation - currentRotation) * 0.1}deg)`;
-
-
-                // Verificar auto cashout se não tiver sacado ainda
+                const maxTranslateX = 60;
+                const maxTranslateY = 60;
+                const maxRotation = 30;
+                const progress = Math.min(1, elapsedSeconds / (crashPoint / speedFactor));
+                const xPos = 10 + (progress * maxTranslateX);
+                const yPos = 20 + (progress * maxTranslateY * Math.sin(progress * Math.PI));
+                const rotation = progress * maxRotation;
+                airplane.style.left = `${xPos}%`;
+                airplane.style.bottom = `${yPos}%`;
+                airplane.style.transform = `rotate(${rotation}deg)`;
                 if (autoCashoutEnabled && currentMultiplier >= autoCashoutValue && !hasUserCashedOut) {
-                    cashout(); // Realiza o saque automático
+                    cashout();
                 }
-                
-                // Verificar se atingiu o ponto de crash E se o jogo ainda está ativo
-                // A condição `&& gameActive` é importante para não crashar APÓS o usuário já ter sacado
                 if (currentMultiplier >= crashPoint && gameActive) {
-                    // Crash!
-                    gameActive = false; // Marcar jogo como inativo imediatamente
-                    clearInterval(gameInterval); // Parar o loop
-                    
-                    // Animação de crash
-                    crashedDisplay.textContent = `${crashPoint.toFixed(2)}x`; // Exibe o multiplicador que crashou
+                    gameActive = false;
+                    clearInterval(gameInterval);
+                    crashedDisplay.textContent = `${crashPoint.toFixed(2)}x`;
                     crashedDisplay.style.display = 'block';
-                    airplane.textContent = '💥'; // Mudar emoji para explosão
-                    airplane.style.transition = 'none'; // Remove transição para a "explosão" ser instantânea/repentina
-
-                    // Adicionar o ponto de crash (resultado da rodada) ao histórico
+                    airplane.textContent = '💥';
+                    airplane.style.transition = 'none';
                     addNewRoundToHistory(crashPoint);
-                    
-                    // Resetar interface e verificar se o jogador perdeu (não sacou)
-                    document.getElementById('cashoutBtn').style.display = 'none'; // Oculta o botão de sacar
-                    document.getElementById('cashoutBtn').classList.add('disabled'); // Garante que está desabilitado
-
-
-                    // Se o jogador *não* fez cashout ANTES do crash, ele perdeu a aposta
+                    document.getElementById('cashoutBtn').style.display = 'none';
+                    document.getElementById('cashoutBtn').classList.add('disabled');
                     if (!hasUserCashedOut) {
-                         // A aposta já foi subtraída no início, não precisa subtrair novamente
-                         // Apenas mostrar a mensagem de perda
-                         // Mostrar o modal de resultado após um pequeno delay
-                         setTimeout(() => {
-                             showResult(false); // Mostrar modal de perda
-                             resetGameState(); // Preparar para a próxima rodada
-                         }, 1500); // Delay para ver o "crash"
-                    } else {
-                        // Se o jogador *já* sacou, ele ganhou. O ganho foi calculado e adicionado no cashout().
-                        // O modal de ganho já foi mostrado no cashout().
-                        // Apenas preparar para a próxima rodada
                         setTimeout(() => {
-                             resetGameState(); // Preparar para a próxima rodada
-                         }, 1500); // Delay antes de resetar após um ganho (opcional)
+                            showResult(false);
+                            resetGameState();
+                        }, 1500);
+                    } else {
+                        setTimeout(() => { resetGameState(); }, 1500);
                     }
                 }
-            }, interval); // Intervalo de atualização do jogo
+            }, interval);
         }
         
-        // Função de cashout
         document.getElementById('cashoutBtn').addEventListener('click', function() {
-            // Só permite sacar se o jogo estiver ativo e o usuário ainda não tiver sacado
             if (!gameActive || hasUserCashedOut || this.classList.contains('disabled')) return;
-            
-            cashout(); // Executa a lógica de saque
+            cashout();
         });
         
-        function cashout() {
-            hasUserCashedOut = true; // Marca que o usuário sacou
-            gameActive = false; // O jogo termina para este usuário (embora continue para outros numa simulação real)
-            clearInterval(gameInterval); // Para o loop do jogo para este usuário
-            
-            // Calcular o ganho
+        async function cashout() {
+            hasUserCashedOut = true;
+            gameActive = false;
+            clearInterval(gameInterval);
             const winAmount = currentBet * currentMultiplier;
-            
-            // Atualizar saldo
-            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-            const newBalance = currentBalance + winAmount; // Adiciona o ganho ao saldo
-            localStorage.setItem('userBalance', newBalance.toString());
-            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-            
-            // Registrar transação de ganho
-            addTransaction('Ganho - Aviator', winAmount, `Sacou em ${currentMultiplier.toFixed(2)}x (Aposta: R$ ${currentBet.toFixed(2)})`);
-            
-            // Atualizar interface
-            document.getElementById('cashoutBtn').style.display = 'none'; // Oculta o botão de sacar
-            document.getElementById('cashoutBtn').classList.add('disabled'); // Garante que está desabilitado
-
-             // Adicionar o multiplicador onde o usuário sacou ao histórico (opcional, pode adicionar o crash point também)
-             // Para este simulador, vamos adicionar o ponto onde ele sacou
-             addNewRoundToHistory(currentMultiplier);
-
-            // Mostrar o modal de resultado (vitória)
+            try {
+                const resp = await api('/api/game-transaction', 'POST', { type: 'Ganho', amount: winAmount, details: `Sacou em ${currentMultiplier.toFixed(2)}x (Aposta: R$ ${currentBet.toFixed(2)})`, game: 'Aviator' });
+                localStorage.setItem('userBalance', String(resp.balance));
+                document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
+            } catch (e) {
+                alert(e.message);
+            }
+            document.getElementById('cashoutBtn').style.display = 'none';
+            document.getElementById('cashoutBtn').classList.add('disabled');
+            addNewRoundToHistory(currentMultiplier);
             showResult(true);
-
-            // Resetar o estado do jogo para a próxima rodada após mostrar o resultado
-             setTimeout(() => {
-                resetGameState();
-            }, 3000); // Delay para o usuário ver o resultado antes de resetar
+            setTimeout(() => { resetGameState(); }, 3000);
         }
         
-        // Mostrar modal de resultado (vitória ou perda)
         function showResult(isWin) {
             const modal = document.getElementById('resultModal');
             const content = document.getElementById('resultContent');
             const icon = document.getElementById('resultIcon');
             const title = document.getElementById('resultTitle');
             const message = document.getElementById('resultMessage');
-            
-            // Configurar o modal de acordo com o resultado
             if (isWin) {
-                content.className = 'result-content win'; // Adiciona classe 'win' para estilos específicos
-                icon.textContent = '🎉'; // Emoji de vitória
+                content.className = 'result-content win';
+                icon.textContent = '🎉';
                 title.textContent = 'Você Ganhou!';
                 message.textContent = `Você sacou em ${currentMultiplier.toFixed(2)}x e ganhou R$ ${(currentBet * currentMultiplier).toFixed(2)}!`;
             } else {
-                content.className = 'result-content lose'; // Adiciona classe 'lose' para estilos específicos
-                icon.textContent = '😭'; // Emoji de perda (ou 💥)
+                content.className = 'result-content lose';
+                icon.textContent = '😭';
                 title.textContent = 'Você Perdeu!';
-                 // Exibe o ponto onde crashou, não onde o jogador estava
                 message.textContent = `O avião caiu em ${crashPoint.toFixed(2)}x e você perdeu sua aposta de R$ ${currentBet.toFixed(2)}.`;
             }
-            
-            // Mostrar o modal
             modal.style.display = 'flex';
         }
         
-        // Esconder o modal de resultado e preparar para nova rodada
         document.getElementById('newGameBtn').addEventListener('click', function() {
             document.getElementById('resultModal').style.display = 'none';
-             // O resetGameState já é chamado após o delay no cashout ou no crash se o usuário perdeu
-             // Se precisar de um reset instantâneo ao clicar no botão, chame resetGameState() aqui
         });
 
-        // Funções para gerenciar transações
-        function addTransaction(type, amount, details) {
-            const transaction = {
-                id: Date.now(),
-                type: type,
-                amount: amount,
-                details: details,
-                date: new Date().toLocaleString('pt-BR'),
-                game: 'Aviator',
-                user: localStorage.getItem('currentUser')
-            };
-            
-            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
-            history.unshift(transaction);
-            localStorage.setItem('transactionHistory', JSON.stringify(history));
-            
-            // Salvar log para planilha
-            saveGameLog(transaction);
+        async function saveGameLog(entry) {
+            const res = await api('/api/logs', 'POST', entry);
+            return res;
         }
-        
-        // Função para salvar log do jogo
-        function saveGameLog(transaction) {
-            const gameLog = JSON.parse(localStorage.getItem('gameLog') || '[]');
-            gameLog.push({
-                ...transaction,
-                timestamp: new Date().toISOString(),
-                sessionId: Date.now()
-            });
-            localStorage.setItem('gameLog', JSON.stringify(gameLog));
-        }
-
     </script>
 </body>
 </html>

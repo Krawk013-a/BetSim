@@ -365,7 +365,8 @@
             <div class="roulette-container">
                 <div class="roulette-pointer"></div>
                 <div class="roulette-wheel" id="rouletteWheel">
-                    </div>
+                    
+                </div>
             </div>
         </div>
     </div>
@@ -380,18 +381,48 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentUser = localStorage.getItem('currentUser');
-            const userBalance = localStorage.getItem('userBalance') || '0.00';
-            
-            if (!currentUser) {
-                window.location.href = 'login.html'; // Redireciona se não estiver logado
+        function authHeaders() {
+            const token = localStorage.getItem('authToken');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : '',
+                'X-Session-Id': localStorage.getItem('sessionId') || ''
+            };
+        }
+
+        async function api(path, method = 'GET', body) {
+            const res = await fetch(path, {
+                method,
+                headers: authHeaders(),
+                body: body ? JSON.stringify(body) : undefined
+            });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                }
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || 'Erro de conexão');
+            }
+            return res.json().catch(() => ({}));
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!localStorage.getItem('authToken')) {
+                window.location.href = 'login.html';
                 return;
             }
-            
-            document.getElementById('username').textContent = currentUser;
-            document.getElementById('userBalance').textContent = `R$ ${parseFloat(userBalance).toFixed(2)}`;
-            
+            if (!localStorage.getItem('sessionId')) {
+                const sid = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem('sessionId', sid);
+            }
+            try {
+                const me = await api('/api/me');
+                localStorage.setItem('currentUser', me.username);
+                localStorage.setItem('userBalance', String(me.balance || 0));
+                document.getElementById('username').textContent = me.username;
+                document.getElementById('userBalance').textContent = `R$ ${parseFloat(me.balance || 0).toFixed(2)}`;
+            } catch (e) { return; }
             initializeGame();
         });
         
@@ -399,7 +430,6 @@
             window.location.href = 'dashboard.html';
         });
 
-        // --- Variáveis do Jogo Double ---
         let gameActive = false;
         let currentBet = 0;
         let selectedColor = '';
@@ -410,7 +440,6 @@
         const betAmountInput = document.getElementById('betAmount');
         const previousResultsContainer = document.getElementById('previousResults');
 
-        // Configuração da roleta: número -> cor
         const wheelSegments = [
             { num: 0, color: 'white' }, { num: 1, color: 'red' }, { num: 2, color: 'black' },
             { num: 3, color: 'red' }, { num: 4, color: 'black' }, { num: 5, color: 'red' },
@@ -420,7 +449,6 @@
         ];
 
         function initializeGame() {
-            // Desenha os números na roleta
             const segmentAngle = 360 / wheelSegments.length;
             wheelSegments.forEach((seg, i) => {
                 const angle = i * segmentAngle;
@@ -433,7 +461,6 @@
             updatePreviousResults();
         }
 
-        // Adiciona listeners para os botões de aposta
         betButtons.forEach(button => {
             button.addEventListener('click', () => {
                 if (gameActive) return;
@@ -442,33 +469,19 @@
             });
         });
 
-        function placeBet(color) {
+        async function placeBet(color) {
             const betAmount = parseFloat(betAmountInput.value);
             const userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-            
-            if (isNaN(betAmount) || betAmount <= 0) {
-                alert('Por favor, insira um valor de aposta válido.');
-                return;
-            }
-            
-            if (betAmount > userBalance) {
-                alert('Saldo insuficiente para realizar esta aposta.');
-                return;
-            }
-
-            // Deduz a aposta e atualiza o saldo
-            const newBalance = userBalance - betAmount;
-            localStorage.setItem('userBalance', newBalance.toString());
-            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-            
-            addTransaction('Aposta - Double', -betAmount, `Apostou em ${color}`);
-            
-            // Configura o estado do jogo
+            if (isNaN(betAmount) || betAmount <= 0) { alert('Por favor, insira um valor de aposta válido.'); return; }
+            if (betAmount > userBalance) { alert('Saldo insuficiente para realizar esta aposta.'); return; }
+            try {
+                const resp = await api('/api/game-transaction', 'POST', { type: 'Aposta', amount: -betAmount, details: `Apostou em ${color}`, game: 'Double' });
+                localStorage.setItem('userBalance', String(resp.balance));
+                document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
+            } catch (e) { alert(e.message); return; }
             gameActive = true;
             currentBet = betAmount;
             selectedColor = color;
-
-            // Desabilita controles e inicia a rodada
             toggleControls(true);
             startRound();
         }
@@ -476,7 +489,6 @@
         function startRound() {
             let countdown = 5;
             timerDisplay.textContent = `Girando em ${countdown}...`;
-            
             timerInterval = setInterval(() => {
                 countdown--;
                 timerDisplay.textContent = `Girando em ${countdown}...`;
@@ -489,41 +501,29 @@
 
         function spinWheel() {
             timerDisplay.textContent = 'Girando...';
-            
-            // Gera resultado e calcula rotação
-            const winningNumber = Math.floor(Math.random() * 15); // 0-14
+            const winningNumber = Math.floor(Math.random() * 15);
             const winningSegment = wheelSegments.findIndex(s => s.num === winningNumber);
             const segmentAngle = 360 / wheelSegments.length;
-            const targetRotation = (360 * 5) - (winningSegment * segmentAngle) - (segmentAngle / 2); // 5 voltas + posição
-
+            const targetRotation = (360 * 5) - (winningSegment * segmentAngle) - (segmentAngle / 2);
             wheel.style.transform = `rotate(${targetRotation}deg)`;
-
-            setTimeout(() => {
-                endRound(winningNumber);
-            }, 5500); // Tempo para a animação terminar
+            setTimeout(() => { endRound(winningNumber); }, 5500);
         }
 
-        function endRound(winningNumber) {
+        async function endRound(winningNumber) {
             const winningColor = wheelSegments.find(s => s.num === winningNumber).color;
             timerDisplay.textContent = `Resultado: ${winningNumber} (${winningColor.charAt(0).toUpperCase() + winningColor.slice(1)})`;
-            
             let winAmount = 0;
             let isWin = false;
-
             if (selectedColor === winningColor) {
                 isWin = true;
                 const multiplier = winningColor === 'white' ? 14 : 2;
                 winAmount = currentBet * multiplier;
-
-                // Adiciona o ganho ao saldo
-                const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-                const newBalance = currentBalance + winAmount;
-                localStorage.setItem('userBalance', newBalance.toString());
-                document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-
-                addTransaction('Ganho - Double', winAmount, `Ganhou com a cor ${winningColor}`);
+                try {
+                    const resp = await api('/api/game-transaction', 'POST', { type: 'Ganho', amount: winAmount, details: `Ganhou com a cor ${winningColor}`, game: 'Double' });
+                    localStorage.setItem('userBalance', String(resp.balance));
+                    document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
+                } catch (e) {}
             }
-
             saveLastResult(winningColor);
             updatePreviousResults();
             showResult(isWin, winAmount, winningColor);
@@ -535,7 +535,6 @@
             const icon = document.getElementById('resultIcon');
             const title = document.getElementById('resultTitle');
             const message = document.getElementById('resultMessage');
-
             if (isWin) {
                 content.className = 'result-content win';
                 icon.textContent = '🎉';
@@ -547,7 +546,6 @@
                 title.textContent = 'Você Perdeu!';
                 message.textContent = `A cor sorteada foi ${winningColor}. Mais sorte na próxima vez! Você perdeu R$ ${currentBet.toFixed(2)}.`;
             }
-            
             modal.style.display = 'flex';
         }
         
@@ -562,11 +560,8 @@
             selectedColor = '';
             toggleControls(false);
             timerDisplay.textContent = 'Faça sua aposta!';
-            
-            // Reseta a rotação da roleta sem animação
             wheel.style.transition = 'none';
             wheel.style.transform = 'rotate(0deg)';
-            // Força o reflow para aplicar a mudança de transição imediatamente
             wheel.offsetHeight; 
             wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
         }
@@ -574,49 +569,20 @@
         function toggleControls(disabled) {
             betAmountInput.disabled = disabled;
             betButtons.forEach(button => {
-                if (disabled) {
-                    button.classList.add('disabled');
-                } else {
-                    button.classList.remove('disabled');
-                }
+                if (disabled) { button.classList.add('disabled'); }
+                else { button.classList.remove('disabled'); }
             });
         }
         
-        // --- Funções de Histórico e Transações (Reutilizadas do jogo Crash) ---
-        function addTransaction(type, amount, details) {
-            const transaction = {
-                id: Date.now(),
-                type: type,
-                amount: amount,
-                details: details,
-                date: new Date().toLocaleString('pt-BR'),
-                game: 'Double',
-                user: localStorage.getItem('currentUser')
-            };
-            
-            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
-            history.unshift(transaction);
-            localStorage.setItem('transactionHistory', JSON.stringify(history));
-            
-            saveGameLog(transaction);
-        }
-
-        function saveGameLog(transaction) {
-            const gameLog = JSON.parse(localStorage.getItem('gameLog') || '[]');
-            gameLog.push({
-                ...transaction,
-                timestamp: new Date().toISOString(),
-                sessionId: Date.now()
-            });
-            localStorage.setItem('gameLog', JSON.stringify(gameLog));
+        async function saveGameLog(entry) {
+            const res = await api('/api/logs', 'POST', entry);
+            return res;
         }
 
         function saveLastResult(color) {
             const lastResults = JSON.parse(localStorage.getItem('doubleLastResults') || '[]');
             lastResults.unshift(color);
-            if (lastResults.length > 10) { // Manter apenas os últimos 10 resultados
-                lastResults.pop();
-            }
+            if (lastResults.length > 10) { lastResults.pop(); }
             localStorage.setItem('doubleLastResults', JSON.stringify(lastResults));
         }
 

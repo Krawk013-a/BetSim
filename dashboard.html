@@ -503,289 +503,228 @@
     </div>
 
     <script>
-        // Verificar se o usuário está logado
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentUser = localStorage.getItem('currentUser');
-            const userBalance = localStorage.getItem('userBalance') || '0.00';
-            
-            if (!currentUser) {
-                // Redirecionar para a página de login se não estiver logado
-                window.location.href = 'login.html'; // Assumindo que sua página de login se chama index.html
-                return;
+        (function() {
+            function ensureSessionId() {
+                if (!localStorage.getItem('sessionId')) {
+                    const sid = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+                    localStorage.setItem('sessionId', sid);
+                }
             }
             
-            // Exibir informações do usuário
-            document.getElementById('username').textContent = currentUser;
-            document.getElementById('userBalance').textContent = `R$ ${parseFloat(userBalance).toFixed(2)}`;
-            
-            // Inicializar histórico de transações se não existir
-            if (!localStorage.getItem('transactionHistory')) {
-                localStorage.setItem('transactionHistory', JSON.stringify([]));
+            function authHeaders() {
+                const token = localStorage.getItem('authToken');
+                return {
+                    'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'X-Session-Id': localStorage.getItem('sessionId') || ''
+                };
             }
-        });
-        
-        // Função de logout
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            localStorage.removeItem('currentUser');
-            localStorage.removeItem('userBalance'); // Limpar saldo ao deslogar
-            localStorage.removeItem('transactionHistory'); // Limpar histórico ao deslogar
-            window.location.href = 'login.html';
-        });
-        
-        // Funções do sistema bancário - Abrir Modais
-        document.getElementById('depositBtn').addEventListener('click', function() {
-            document.getElementById('depositModal').style.display = 'flex';
-        });
-        
-        document.getElementById('withdrawBtn').addEventListener('click', function() {
-            document.getElementById('withdrawModal').style.display = 'flex';
-        });
-        
-        document.getElementById('historyBtn').addEventListener('click', function() {
-            showTransactionHistory(); // Atualiza o histórico antes de abrir o modal
-            document.getElementById('historyModal').style.display = 'flex';
-        });
-        
-        document.getElementById('logsBtn').addEventListener('click', function() {
-            window.location.href = 'logs.html';
-        });
-        
-        // Fechar modais (clicando no X)
-        document.querySelectorAll('.close-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                this.closest('.modal').style.display = 'none';
-                
-                // Resetar mensagens de sucesso/erro
+
+            async function api(path, method = 'GET', body) {
+                const res = await fetch(path, {
+                    method,
+                    headers: authHeaders(),
+                    body: body ? JSON.stringify(body) : undefined
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || 'Erro de conexão');
+                return data;
+            }
+
+            document.addEventListener('DOMContentLoaded', async function() {
+                ensureSessionId();
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                try {
+                    const me = await api('/api/me');
+                    localStorage.setItem('currentUser', me.username);
+                    localStorage.setItem('userBalance', String(me.balance || 0));
+                    document.getElementById('username').textContent = me.username;
+                    document.getElementById('userBalance').textContent = `R$ ${parseFloat(me.balance || 0).toFixed(2)}`;
+                } catch (e) {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                    return;
+                }
+                if (!localStorage.getItem('transactionHistory')) {
+                    localStorage.setItem('transactionHistory', JSON.stringify([]));
+                }
+            });
+            
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            });
+            
+            document.getElementById('depositBtn').addEventListener('click', function() {
+                document.getElementById('depositModal').style.display = 'flex';
+            });
+            
+            document.getElementById('withdrawBtn').addEventListener('click', function() {
+                document.getElementById('withdrawModal').style.display = 'flex';
+            });
+            
+            document.getElementById('historyBtn').addEventListener('click', function() {
+                showTransactionHistory();
+                document.getElementById('historyModal').style.display = 'flex';
+            });
+            
+            document.getElementById('logsBtn').addEventListener('click', function() {
+                window.location.href = 'logs.html';
+            });
+            
+            document.querySelectorAll('.close-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                    document.getElementById('depositSuccess').style.display = 'none';
+                    document.getElementById('depositError').style.display = 'none';
+                    document.getElementById('withdrawSuccess').style.display = 'none';
+                    document.getElementById('withdrawError').style.display = 'none';
+                    document.getElementById('depositForm').reset();
+                    document.getElementById('withdrawForm').reset();
+                });
+            });
+
+            window.addEventListener('click', function(event) {
+                const depositModal = document.getElementById('depositModal');
+                const withdrawModal = document.getElementById('withdrawModal');
+                const historyModal = document.getElementById('historyModal');
+                if (event.target === depositModal) {
+                    depositModal.style.display = 'none';
+                    document.getElementById('depositSuccess').style.display = 'none';
+                    document.getElementById('depositError').style.display = 'none';
+                    document.getElementById('depositForm').reset();
+                }
+                if (event.target === withdrawModal) {
+                    withdrawModal.style.display = 'none';
+                    document.getElementById('withdrawSuccess').style.display = 'none';
+                    document.getElementById('withdrawError').style.display = 'none';
+                    document.getElementById('withdrawForm').reset();
+                }
+                if (event.target === historyModal) {
+                    historyModal.style.display = 'none';
+                }
+            });
+            
+            document.getElementById('depositForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const amount = parseFloat(document.getElementById('depositAmount').value);
+                const cardNumber = document.getElementById('cardNumber').value;
                 document.getElementById('depositSuccess').style.display = 'none';
                 document.getElementById('depositError').style.display = 'none';
+                if (isNaN(amount) || amount <= 0 || !cardNumber) {
+                    document.getElementById('depositError').textContent = 'Por favor, preencha todos os campos corretamente.';
+                    document.getElementById('depositError').style.display = 'block';
+                    return;
+                }
+                try {
+                    const res = await api('/api/balance', 'POST', { delta: amount, reason: `Cartão final ${String(cardNumber).slice(-4)}` });
+                    localStorage.setItem('userBalance', String(res.balance));
+                    document.getElementById('userBalance').textContent = `R$ ${parseFloat(res.balance).toFixed(2)}`;
+                    addTransaction('Depósito', amount, `Cartão final ${String(cardNumber).slice(-4)}`);
+                    document.getElementById('depositSuccess').style.display = 'block';
+                    document.getElementById('depositForm').reset();
+                    setTimeout(function() {
+                        document.getElementById('depositModal').style.display = 'none';
+                        document.getElementById('depositSuccess').style.display = 'none';
+                    }, 1500);
+                } catch (err) {
+                    document.getElementById('depositError').textContent = err.message;
+                    document.getElementById('depositError').style.display = 'block';
+                }
+            });
+            
+            document.getElementById('withdrawForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const amount = parseFloat(document.getElementById('withdrawAmount').value);
+                const pixKey = document.getElementById('pixKey').value;
                 document.getElementById('withdrawSuccess').style.display = 'none';
                 document.getElementById('withdrawError').style.display = 'none';
-                 // Resetar formulários
-                document.getElementById('depositForm').reset();
-                document.getElementById('withdrawForm').reset();
-            });
-        });
-
-         // Fechar modais clicando fora (opcional)
-        window.addEventListener('click', function(event) {
-            const depositModal = document.getElementById('depositModal');
-            const withdrawModal = document.getElementById('withdrawModal');
-            const historyModal = document.getElementById('historyModal');
-
-            if (event.target === depositModal) {
-                depositModal.style.display = 'none';
-                 document.getElementById('depositSuccess').style.display = 'none';
-                document.getElementById('depositError').style.display = 'none';
-                 document.getElementById('depositForm').reset();
-            }
-             if (event.target === withdrawModal) {
-                withdrawModal.style.display = 'none';
-                 document.getElementById('withdrawSuccess').style.display = 'none';
-                document.getElementById('withdrawError').style.display = 'none';
-                document.getElementById('withdrawForm').reset();
-            }
-             if (event.target === historyModal) {
-                historyModal.style.display = 'none';
-            }
-        });
-        
-        // Processamento de depósito
-        document.getElementById('depositForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const amount = parseFloat(document.getElementById('depositAmount').value);
-            const cardNumber = document.getElementById('cardNumber').value;
-             // Limpar mensagens anteriores
-            document.getElementById('depositSuccess').style.display = 'none';
-            document.getElementById('depositError').style.display = 'none';
-
-            if (isNaN(amount) || amount <= 0 || !cardNumber) {
-                document.getElementById('depositError').textContent = 'Por favor, preencha todos os campos corretamente.';
-                document.getElementById('depositError').style.display = 'block';
-                return;
-            }
-            
-            // Atualizar saldo (usando localStorage para simular)
-            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-            const newBalance = currentBalance + amount;
-            localStorage.setItem('userBalance', newBalance.toString());
-            
-            // Atualizar exibição do saldo
-            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-            
-            // Registrar transação
-            addTransaction('Depósito', amount, `Cartão final ${cardNumber.slice(-4)}`);
-            
-            // Exibir mensagem de sucesso
-            document.getElementById('depositSuccess').style.display = 'block';
-            
-            // Resetar formulário
-            document.getElementById('depositForm').reset();
-            
-            // Fechar modal após 2 segundos
-            setTimeout(function() {
-                document.getElementById('depositModal').style.display = 'none';
-                document.getElementById('depositSuccess').style.display = 'none'; // Ocultar a mensagem após fechar
-            }, 2000);
-        });
-        
-        // Processamento de saque
-        document.getElementById('withdrawForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const amount = parseFloat(document.getElementById('withdrawAmount').value);
-            const pixKey = document.getElementById('pixKey').value;
-
-            // Limpar mensagens anteriores
-             document.getElementById('withdrawSuccess').style.display = 'none';
-            document.getElementById('withdrawError').style.display = 'none';
-            
-            if (isNaN(amount) || amount <= 0 || !pixKey) {
-                document.getElementById('withdrawError').textContent = 'Por favor, preencha todos os campos corretamente.';
-                document.getElementById('withdrawError').style.display = 'block';
-                return;
-            }
-            
-            // Verificar saldo (usando localStorage para simular)
-            const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-            
-            if (amount > currentBalance) {
-                document.getElementById('withdrawError').textContent = 'Saldo insuficiente para realizar o saque.';
-                document.getElementById('withdrawError').style.display = 'block';
-                return;
-            }
-            
-            // Atualizar saldo
-            const newBalance = currentBalance - amount;
-            localStorage.setItem('userBalance', newBalance.toString());
-            
-            // Atualizar exibição do saldo
-            document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-            
-            // Registrar transação
-            addTransaction('Saque', -amount, `PIX: ${pixKey.substring(0, 3)}...`);
-            
-            // Exibir mensagem de sucesso
-            document.getElementById('withdrawSuccess').style.display = 'block';
-            
-            // Resetar formulário
-            document.getElementById('withdrawForm').reset();
-            
-            // Fechar modal após 2 segundos
-            setTimeout(function() {
-                document.getElementById('withdrawModal').style.display = 'none';
-                 document.getElementById('withdrawSuccess').style.display = 'none'; // Ocultar a mensagem após fechar
-            }, 2000);
-        });
-        
-        // Funções para gerenciar transações (usando localStorage para simular)
-        function addTransaction(type, amount, details) {
-            const transaction = {
-                id: Date.now(), // ID único (simplificado)
-                type: type, // 'Depósito', 'Saque', 'Aposta', 'Ganho'
-                amount: amount, // Valor da transação (+ para entrada, - para saída)
-                details: details, // Detalhes (ex: "Cartão final ...", "PIX: ...", "Jogo Mines", "Ganho Mines")
-                date: new Date().toLocaleString('pt-BR') // Data e hora formatadas
-            };
-            
-            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
-            history.unshift(transaction); // Adicionar a transação mais recente no topo
-            // Limitar o histórico para não crescer indefinidamente (opcional, mas recomendado)
-            // Ex: manter apenas as últimas 50 transações
-            if (history.length > 50) {
-                 history.pop();
-            }
-
-            localStorage.setItem('transactionHistory', JSON.stringify(history));
-        }
-        
-        // Função para exibir o histórico de transações no modal
-        function showTransactionHistory() {
-            const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
-            const historyContainer = document.getElementById('transactionHistory');
-            
-            if (history.length === 0) {
-                historyContainer.innerHTML = '<p style="color: #aaa; text-align: center;">Sem transações registradas.</p>';
-                return;
-            }
-            
-            let html = '<ul style="list-style: none; padding: 0;">';
-            
-            history.forEach(transaction => {
-                const amountClass = transaction.amount >= 0 ? 'color: #4CAF50;' : 'color: #ff6b6b;';
-                const sign = transaction.amount >= 0 ? '' : '-'; // Adiciona o sinal negativo para saques
-                
-                html += `
-                    <li style="padding: 10px; border-bottom: 1px solid #444; margin-bottom: 10px;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <strong>${transaction.type}</strong>
-                            <span style="${amountClass} font-weight: bold;">R$ ${sign}${Math.abs(transaction.amount).toFixed(2)}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 5px;">
-                            <span style="color: #aaa; font-size: 12px;">${transaction.details}</span>
-                            <span style="color: #aaa; font-size: 12px;">${transaction.date}</span>
-                        </div>
-                    </li>
-                `;
+                if (isNaN(amount) || amount <= 0 || !pixKey) {
+                    document.getElementById('withdrawError').textContent = 'Por favor, preencha todos os campos corretamente.';
+                    document.getElementById('withdrawError').style.display = 'block';
+                    return;
+                }
+                try {
+                    const res = await api('/api/balance', 'POST', { delta: -amount, reason: `PIX: ${pixKey.substring(0, 3)}...` });
+                    localStorage.setItem('userBalance', String(res.balance));
+                    document.getElementById('userBalance').textContent = `R$ ${parseFloat(res.balance).toFixed(2)}`;
+                    addTransaction('Saque', -amount, `PIX: ${pixKey.substring(0, 3)}...`);
+                    document.getElementById('withdrawSuccess').style.display = 'block';
+                    document.getElementById('withdrawForm').reset();
+                    setTimeout(function() {
+                        document.getElementById('withdrawModal').style.display = 'none';
+                        document.getElementById('withdrawSuccess').style.display = 'none';
+                    }, 1500);
+                } catch (err) {
+                    document.getElementById('withdrawError').textContent = err.message;
+                    document.getElementById('withdrawError').style.display = 'block';
+                }
             });
             
-            html += '</ul>';
-            historyContainer.innerHTML = html;
-        }
-        
-        // Navegação para os jogos (assumindo que cada jogo terá seu próprio arquivo HTML)
-        document.getElementById('minesGame').addEventListener('click', function() {
-            window.location.href = 'mines.html'; // Você precisará criar o arquivo mines.html
-        });
-        
-        document.getElementById('aviatorGame').addEventListener('click', function() {
-            window.location.href = 'aviator.html';
-        });
-        
-        document.getElementById('crashGame').addEventListener('click', function() {
-            window.location.href = 'crash.html';
-        });
-        
-        document.getElementById('rouletteGame').addEventListener('click', function() {
-            window.location.href = 'roulette.html';
-        });
-        
-        // Mensagem para jogo não implementado
-        document.getElementById('slotsGame').addEventListener('click', function() {
-            alert('Jogo de Slots em desenvolvimento para o TCC. Por favor, experimente os outros jogos disponíveis.');
-        });
-
-         // --- Simulação de Aposta (Exemplo Básico para o Dashboard) ---
-         // Esta é apenas uma simulação visual no dashboard, os jogos reais terão sua própria lógica
-        document.addEventListener('click', function(e) {
-            // Exemplo: Simular ganho/perda ao clicar no saldo (Apenas para demonstração rápida)
-            if (e.target && e.target.id === 'userBalance') {
-                 if (confirm('Simular uma aposta? (Clique OK para Ganhar, Cancelar para Perder)')) {
-                    const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-                    const betAmount = 10; // Simula uma aposta de R$ 10
-                    let newBalance = currentBalance + betAmount * 5; // Simula um ganho (5x a aposta)
-                    addTransaction('Aposta Simulada', betAmount * 5, 'Ganho simulado no Dashboard');
-                    localStorage.setItem('userBalance', newBalance.toString());
-                    document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-                    alert('Ganho simulado!');
-
-                 } else {
-                     const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-                     const betAmount = 10; // Simula uma aposta de R$ 10
-                     if (currentBalance >= betAmount) {
-                        let newBalance = currentBalance - betAmount; // Simula uma perda
-                         addTransaction('Aposta Simulada', -betAmount, 'Perda simulada no Dashboard');
-                        localStorage.setItem('userBalance', newBalance.toString());
-                        document.getElementById('userBalance').textContent = `R$ ${newBalance.toFixed(2)}`;
-                        alert('Perda simulada!');
-                     } else {
-                         alert('Saldo insuficiente para simular perda.');
-                     }
-                 }
+            function addTransaction(type, amount, details) {
+                const transaction = {
+                    id: Date.now(),
+                    type,
+                    amount,
+                    details,
+                    date: new Date().toLocaleString('pt-BR'),
+                    game: 'Bank',
+                    user: localStorage.getItem('currentUser')
+                };
+                const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+                history.unshift(transaction);
+                if (history.length > 50) { history.pop(); }
+                localStorage.setItem('transactionHistory', JSON.stringify(history));
             }
-        });
-
-
+            
+            function showTransactionHistory() {
+                const history = JSON.parse(localStorage.getItem('transactionHistory') || '[]');
+                const container = document.getElementById('transactionHistory');
+                if (history.length === 0) {
+                    container.innerHTML = '<p style="color: #aaa; text-align: center;">Sem transações registradas.</p>';
+                    return;
+                }
+                let html = '<ul style="list-style: none; padding: 0;">';
+                history.forEach(transaction => {
+                    const amountStyle = transaction.amount >= 0 ? 'color: #4CAF50;' : 'color: #ff6b6b;';
+                    const sign = transaction.amount >= 0 ? '' : '-';
+                    html += `
+                        <li style="padding: 10px; border-bottom: 1px solid #444; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <strong>${transaction.type}</strong>
+                                <span style="${amountStyle} font-weight: bold;">R$ ${sign}${Math.abs(transaction.amount).toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                <span style="color: #aaa; font-size: 12px;">${transaction.details}</span>
+                                <span style="color: #aaa; font-size: 12px;">${transaction.date}</span>
+                            </div>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                container.innerHTML = html;
+            }
+            
+            document.getElementById('minesGame').addEventListener('click', function() {
+                window.location.href = 'mines.html';
+            });
+            document.getElementById('aviatorGame').addEventListener('click', function() {
+                window.location.href = 'aviator.html';
+            });
+            document.getElementById('crashGame').addEventListener('click', function() {
+                window.location.href = 'crash.html';
+            });
+            document.getElementById('rouletteGame').addEventListener('click', function() {
+                window.location.href = 'roulette.html';
+            });
+            document.getElementById('slotsGame').addEventListener('click', function() {
+                alert('Jogo de Slots em desenvolvimento para o TCC. Por favor, experimente os outros jogos disponíveis.');
+            });
+        })();
     </script>
 </body>
 </html>

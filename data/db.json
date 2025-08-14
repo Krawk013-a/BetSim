@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "id": "2b9ef0c0-c227-442c-9ebd-618b36d43e97",
+      "username": "teste",
+      "passwordHash": "$2a$10$LBiNpJh/xDbL5xX1jLtf0eqEiCwf2XkdYAvZjRi5YmtB4woFM/rzG",
+      "balance": 100,
+      "createdAt": "2025-08-14T13:53:44.024Z"
+    }
+  ],
+  "logs": []
+}

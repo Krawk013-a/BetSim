@@ -16,6 +16,7 @@ export default async function handler(req, res) {
     await sql`INSERT INTO users (id, username, password_hash, balance, created_at) VALUES (${id}, ${username}, ${passwordHash}, ${100}, now())`;
     return res.json({ message: 'Registrado com sucesso' });
   } catch (e) {
+    console.error('register:error', e);
     return res.status(500).json({ message: e.message || 'Erro no servidor' });
   }
 }

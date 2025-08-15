@@ -616,13 +616,12 @@
         });
         
         function determineCrashPoint() {
-             const randomValue = Math.random();
-             let point;
-             if (randomValue < 0.1) { point = 1 + Math.random() * 0.19; }
-             else if (randomValue < 0.6) { point = 1.2 + Math.random() * 0.8; }
-             else if (randomValue < 0.9) { point = 2.0 + Math.random() * 3.0; }
-             else { point = 5.0 + Math.random() * 20.0; }
-             return Math.max(1.01, point);
+             const r = Math.random();
+             // Aumentar chance de crashes mais altos (avião durar mais)
+             if (r < 0.05) return 1.02 + Math.random() * 0.2;           // 5% muito cedo
+             if (r < 0.45) return 1.5 + Math.random() * 1.5;            // 40% entre 1.5x e 3.0x
+             if (r < 0.85) return 3.0 + Math.random() * 5.0;            // 40% entre 3x e 8x
+             return 8.0 + Math.random() * 25.0;                         // 15% acima de 8x
         }
         
         function startGameLoop() {
@@ -635,8 +634,8 @@
             airplane.style.transition = `all ${interval / 1000}s linear`;
             gameInterval = setInterval(function() {
                 const elapsedSeconds = (Date.now() - startTime) / 1000;
-                const speedFactor = 0.5;
-                const curveFactor = 1.2;
+                const speedFactor = 0.35;
+                const curveFactor = 1.1;
                 currentMultiplier = 1 + Math.pow(elapsedSeconds * speedFactor, curveFactor);
                  currentMultiplier = Math.min(currentMultiplier, 1000);
                  if (currentMultiplier < 2.0) {

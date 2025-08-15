@@ -337,11 +337,6 @@
         <div class="bank-section">
             <h2 class="section-title">Sistema Bancário</h2>
             <div class="bank-actions">
-                <div class="bank-card" id="depositBtn">
-                    <h3>Depositar</h3>
-                    <p>Adicionar saldo à sua conta</p>
-                </div>
-                
                 <div class="bank-card" id="withdrawBtn">
                     <h3>Sacar</h3>
                     <p>Retire seus ganhos</p>
@@ -411,49 +406,6 @@
                         <p>Gire os rolos e combine símbolos</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="depositModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Depositar Dinheiro</h2>
-                <button class="close-btn deposit-close">&times;</button>
-            </div>
-            
-            <form id="depositForm">
-                <div class="form-group">
-                    <label for="depositAmount">Valor (R$)</label>
-                    <input type="number" id="depositAmount" min="10" step="10" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="cardNumber">Nome no Cartão</label>
-                    <input type="text" id="cardNumber" placeholder="Lucas Benfati" maxlength="16" required>
-                </div>
-                <div class="form-group">
-                    <label for="cardNumber">Número do Cartão</label>
-                    <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
-                </div>      
-                <div class="form-group">
-                    <label for="cardNumber">Validade do Cartão</label>
-                    <input type="text" id="cardNumber" placeholder="02/27" maxlength="7" required>
-                </div>                    
-                <div class="form-group">
-                    <label for="cardNumber">CVV do Cartão</label>
-                    <input type="text" id="cardNumber" placeholder="123" maxlength="3" required>
-                </div>    
-                
-                <button type="submit" class="btn">Depositar</button>
-            </form>
-            
-            <div class="success-message" id="depositSuccess">
-                Depósito realizado com sucesso!
-            </div>
-            
-            <div class="error-message" id="depositError">
-                Erro ao processar o depósito. Tente novamente.
             </div>
         </div>
     </div>
@@ -559,9 +511,7 @@
                 window.location.href = 'login.html';
             });
             
-            document.getElementById('depositBtn').addEventListener('click', function() {
-                document.getElementById('depositModal').style.display = 'flex';
-            });
+
             
             document.getElementById('withdrawBtn').addEventListener('click', function() {
                 document.getElementById('withdrawModal').style.display = 'flex';
@@ -579,25 +529,16 @@
             document.querySelectorAll('.close-btn').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     this.closest('.modal').style.display = 'none';
-                    document.getElementById('depositSuccess').style.display = 'none';
-                    document.getElementById('depositError').style.display = 'none';
                     document.getElementById('withdrawSuccess').style.display = 'none';
                     document.getElementById('withdrawError').style.display = 'none';
-                    document.getElementById('depositForm').reset();
                     document.getElementById('withdrawForm').reset();
                 });
             });
 
             window.addEventListener('click', function(event) {
-                const depositModal = document.getElementById('depositModal');
                 const withdrawModal = document.getElementById('withdrawModal');
                 const historyModal = document.getElementById('historyModal');
-                if (event.target === depositModal) {
-                    depositModal.style.display = 'none';
-                    document.getElementById('depositSuccess').style.display = 'none';
-                    document.getElementById('depositError').style.display = 'none';
-                    document.getElementById('depositForm').reset();
-                }
+
                 if (event.target === withdrawModal) {
                     withdrawModal.style.display = 'none';
                     document.getElementById('withdrawSuccess').style.display = 'none';
@@ -609,33 +550,7 @@
                 }
             });
             
-            document.getElementById('depositForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const amount = parseFloat(document.getElementById('depositAmount').value);
-                const cardNumber = document.getElementById('cardNumber').value;
-                document.getElementById('depositSuccess').style.display = 'none';
-                document.getElementById('depositError').style.display = 'none';
-                if (isNaN(amount) || amount <= 0 || !cardNumber) {
-                    document.getElementById('depositError').textContent = 'Por favor, preencha todos os campos corretamente.';
-                    document.getElementById('depositError').style.display = 'block';
-                    return;
-                }
-                try {
-                    const res = await api('/api/balance', 'POST', { delta: amount, reason: `Cartão final ${String(cardNumber).slice(-4)}` });
-                    localStorage.setItem('userBalance', String(res.balance));
-                    document.getElementById('userBalance').textContent = `R$ ${parseFloat(res.balance).toFixed(2)}`;
-                    addTransaction('Depósito', amount, `Cartão final ${String(cardNumber).slice(-4)}`);
-                    document.getElementById('depositSuccess').style.display = 'block';
-                    document.getElementById('depositForm').reset();
-                    setTimeout(function() {
-                        document.getElementById('depositModal').style.display = 'none';
-                        document.getElementById('depositSuccess').style.display = 'none';
-                    }, 1500);
-                } catch (err) {
-                    document.getElementById('depositError').textContent = err.message;
-                    document.getElementById('depositError').style.display = 'block';
-                }
-            });
+
             
             document.getElementById('withdrawForm').addEventListener('submit', async function(e) {
                 e.preventDefault();

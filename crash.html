@@ -465,6 +465,8 @@
             button.addEventListener('click', () => {
                 if (gameActive) return;
                 const color = button.getAttribute('data-color');
+                // trava imediatamente a UI para evitar duplo clique
+                toggleControls(true);
                 placeBet(color);
             });
         });

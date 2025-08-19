@@ -658,7 +658,15 @@
         async function cashout() {
             hasUserCashedOut = true;
             try {
-                const resp = await api('/api/live/aviator/cashout', 'POST');
+                const res = await fetch('/api/live/aviator/cashout', {
+                    method: 'POST',
+                    headers: { ...authHeaders(), 'X-Bet-Amount': String(currentBet) }
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'Erro de conexão');
+                }
+                const resp = await res.json().catch(() => ({}));
                 localStorage.setItem('userBalance', String(resp.balance));
                 document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
                 showResult(true);

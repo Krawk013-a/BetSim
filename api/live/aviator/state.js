@@ -56,11 +56,13 @@ export default async function handler(req, res) {
     const info = getRoundInfo(now);
     const crashPoint = crashPointFor(info.roundIndex);
     if (info.phase === 'betting') {
+      const sinceCycleStart = now - (EPOCH_MS + Math.floor((now - EPOCH_MS) / (BETTING_MS + 60000)) * (BETTING_MS + 60000));
+      const timeLeftMs = Math.max(0, BETTING_MS - sinceCycleStart);
       return res.json({
         game: 'Aviator',
         roundId: info.roundId,
         phase: 'betting',
-        timeLeftMs: Math.max(0, BETTING_MS - (now - (now - (now % (BETTING_MS + 60000))))),
+        timeLeftMs,
         serverTime: now,
         previousCrashPoints: buildPrevious(10, info.roundIndex)
       });

@@ -6,7 +6,7 @@ const EPOCH_MS = Date.UTC(2024, 0, 1, 0, 0, 0, 0);
 const BETTING_MS = 10000;
 
 function isBettingPhase(nowMs) {
-  const cycleMs = BETTING_MS + 60000;
+  const cycleMs = BETTING_MS + 5000;
   const since = nowMs - EPOCH_MS;
   const within = since % cycleMs;
   return within < BETTING_MS;

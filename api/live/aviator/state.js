@@ -5,19 +5,16 @@ import crypto from 'crypto';
 
 const EPOCH_MS = Date.UTC(2024, 0, 1, 0, 0, 0, 0);
 const BETTING_MS = 10000;
+const ENDED_MS = 2000;
 // Aviator não tem duração fixa; usamos curva para multiplicador e crashPoint determinístico por rodada
 const CURVE = { speed: 0.35, curve: 1.1 };
 
-function getRoundInfo(nowMs) {
-  // alterna entre betting e playing; playing começa após janela de apostas
-  const cycleMs = BETTING_MS + 60000; // até 60s de voo máximo para segurança
+function getRoundIndex(nowMs) {
+  const cycleMs = BETTING_MS + 60000;
   const since = nowMs - EPOCH_MS;
   const idx = Math.floor(since / cycleMs);
   const within = since % cycleMs;
-  const phase = within < BETTING_MS ? 'betting' : 'playing';
-  const playingStartedAt = within < BETTING_MS ? null : (nowMs - (within - BETTING_MS));
-  const roundId = `aviator-${idx}`;
-  return { roundIndex: idx, roundId, phase, playingStartedAt };
+  return { idx, within, cycleMs };
 }
 
 function crashPointFor(roundIndex) {
@@ -53,42 +50,66 @@ export default async function handler(req, res) {
     try { verifyTokenFromRequest(req); } catch {}
     await ensureSchema();
     const now = Date.now();
-    const info = getRoundInfo(now);
-    const crashPoint = crashPointFor(info.roundIndex);
-    if (info.phase === 'betting') {
-      const sinceCycleStart = now - (EPOCH_MS + Math.floor((now - EPOCH_MS) / (BETTING_MS + 60000)) * (BETTING_MS + 60000));
-      const timeLeftMs = Math.max(0, BETTING_MS - sinceCycleStart);
+    const { idx, within, cycleMs } = getRoundIndex(now);
+    const crashPoint = crashPointFor(idx);
+    const playSec = secondsToReach(crashPoint);
+    const playMs = Math.min(60000 - BETTING_MS, Math.floor(playSec * 1000));
+    const playingStartWithin = BETTING_MS;
+    const crashWithin = playingStartWithin + playMs;
+    const endedUntilWithin = crashWithin + ENDED_MS;
+
+    if (within < BETTING_MS) {
+      // Betting da rodada idx
+      const timeLeftMs = BETTING_MS - within;
       return res.json({
         game: 'Aviator',
-        roundId: info.roundId,
+        roundId: `aviator-${idx}`,
         phase: 'betting',
         timeLeftMs,
         serverTime: now,
-        previousCrashPoints: buildPrevious(10, info.roundIndex)
+        previousCrashPoints: buildPrevious(10, idx)
       });
     }
-    // playing
-    const elapsedSec = (now - info.playingStartedAt) / 1000;
-    const currentMultiplier = multiplierAt(elapsedSec);
-    const totalPlaySec = secondsToReach(crashPoint);
-    if (elapsedSec >= totalPlaySec) {
-      // rodada terminou; cliente deve ver fase 'ended' em breve ao girar o relógio do ciclo
+
+    if (within >= BETTING_MS && within < crashWithin) {
+      // Playing da rodada idx
+      const playingStartedAt = now - (within - BETTING_MS);
+      const elapsedSec = (now - playingStartedAt) / 1000;
+      const currentMultiplier = multiplierAt(elapsedSec);
       return res.json({
         game: 'Aviator',
-        roundId: info.roundId,
-        phase: 'ended',
-        timeLeftMs: 1500,
+        roundId: `aviator-${idx}`,
+        phase: 'playing',
         serverTime: now,
-        previousCrashPoints: buildPrevious(10, info.roundIndex)
+        playing: { startedAt: playingStartedAt, currentMultiplier: Number(currentMultiplier.toFixed(4)) },
+        previousCrashPoints: buildPrevious(10, idx)
       });
     }
+
+    if (within >= crashWithin && within < endedUntilWithin) {
+      // Ended curto
+      const timeLeftMs = endedUntilWithin - within;
+      return res.json({
+        game: 'Aviator',
+        roundId: `aviator-${idx}`,
+        phase: 'ended',
+        timeLeftMs,
+        serverTime: now,
+        previousCrashPoints: buildPrevious(10, idx)
+      });
+    }
+
+    // Pré-betting da próxima rodada (idx+1), reabre apostas até BATTERY_MS
+    const sinceEnded = within - endedUntilWithin;
+    const nextBettingElapsed = Math.min(BETTING_MS, sinceEnded);
+    const timeLeftMs = BETTING_MS - nextBettingElapsed;
     return res.json({
       game: 'Aviator',
-      roundId: info.roundId,
-      phase: 'playing',
+      roundId: `aviator-${idx + 1}`,
+      phase: 'betting',
+      timeLeftMs,
       serverTime: now,
-      playing: { startedAt: info.playingStartedAt, currentMultiplier: Number(currentMultiplier.toFixed(4)) },
-      previousCrashPoints: buildPrevious(10, info.roundIndex)
+      previousCrashPoints: buildPrevious(10, idx + 1)
     });
   } catch (e) {
     return res.status(500).json({ message: e.message || 'Erro no servidor' });

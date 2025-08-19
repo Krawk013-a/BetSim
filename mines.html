@@ -355,11 +355,11 @@
                 <div class="mines-selector">
                     <label for="minesCount">Minas:</label>
                     <select id="minesCount">
-                        <option value="1">1</option>
-                        <option value="3">3</option>
+                        <option value="2">2</option>
                         <option value="5" selected>5</option>
                         <option value="10">10</option>
                         <option value="15">15</option>
+                        <option value="24">24</option>
                     </select>
                 </div>
                 
@@ -536,8 +536,23 @@
         
         function updateMultiplier() {
             const minesCount = parseInt(document.getElementById('minesCount').value);
-            const safeSquares = 25 - minesCount;
-            currentMultiplier = parseFloat((0.95 * (25 / (25 - revealedTiles)) * (safeSquares / (safeSquares - revealedTiles))).toFixed(2));
+            const table = {
+                2: { success: 0.92, mult: 1.01 },
+                5: { success: 0.80, mult: 1.16 },
+                10: { success: 0.60, mult: 1.55 },
+                15: { success: 0.40, mult: 2.33 },
+                24: { success: 0.004, mult: 23.33 }
+            };
+            const cfg = table[minesCount];
+            if (cfg) {
+                // Multiplicador alvo por clique bem-sucedido segundo a tabela fornecida
+                // Ajuste progressivo: cada diamante revelado aumenta o multiplicador cumulativamente
+                const base = cfg.mult;
+                const progressive = Math.pow(base, Math.max(1, revealedTiles));
+                currentMultiplier = parseFloat(progressive.toFixed(2));
+            } else {
+                currentMultiplier = 1.0;
+            }
             potentialWin = currentBet * currentMultiplier;
             updateGameInfo();
         }

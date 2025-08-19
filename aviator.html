@@ -485,6 +485,7 @@
             } catch (e) { return; }
             loadPreviousRounds();
             resetGameState();
+            startLivePolling();
         });
         
         document.getElementById('backBtn').addEventListener('click', function() {
@@ -505,12 +506,13 @@
         let currentBet = 0;
         let currentMultiplier = 1.00;
         let gameInterval;
-        let crashPoint;
         let hasUserCashedOut = false;
         let autoCashoutEnabled = false;
         let autoCashoutValue = 2.0;
         const previousRoundsKey = 'aviatorPreviousRounds';
         const maxPreviousRounds = 10;
+        let lastPhase = '';
+        let currentServerPhase = 'betting';
         
         function loadPreviousRounds() {
              const storedRounds = localStorage.getItem(previousRoundsKey);
@@ -581,6 +583,7 @@
 
         document.getElementById('placeBetBtn').addEventListener('click', async function() {
             if (gameActive || this.classList.contains('disabled')) return;
+            if (currentServerPhase !== 'betting') { alert('Apostas abrem em instantes. Aguarde a fase de apostas.'); return; }
             const betAmountInput = document.getElementById('betAmount');
             const betAmount = parseFloat(betAmountInput.value);
             const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
@@ -590,7 +593,7 @@
             if (autoCashoutEnabled && (isNaN(autoCashoutValue) || autoCashoutValue < 1.1)) { alert('Por favor, insira um valor de Auto-Cashout válido (mínimo 1.1).'); return; }
             if (betAmount > currentBalance) { alert('Saldo insuficiente para realizar esta aposta.'); return; }
             try {
-                const resp = await api('/api/game-transaction', 'POST', { type: 'Aposta', amount: -betAmount, details: `Aposta de R$ ${betAmount.toFixed(2)}`, game: 'Aviator' });
+                const resp = await api('/api/live/aviator/bet', 'POST', { amount: betAmount });
                 localStorage.setItem('userBalance', String(resp.balance));
                 document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
             } catch (e) {
@@ -601,7 +604,6 @@
             currentBet = betAmount;
             currentMultiplier = 1.00;
             hasUserCashedOut = false;
-            crashPoint = determineCrashPoint();
             document.getElementById('multiplierDisplay').textContent = '1.00x';
             document.getElementById('crashedDisplay').style.display = 'none';
             document.getElementById('airplane').textContent = '✈️';
@@ -612,32 +614,19 @@
             document.getElementById('betAmount').disabled = true;
             document.getElementById('autoCashoutEnabled').disabled = true;
             document.getElementById('autoCashoutValue').disabled = true;
-            startGameLoop();
+            // loop visual agora usa o estado do servidor
         });
-        
-        function determineCrashPoint() {
-             const r = Math.random();
-             // Aumentar chance de crashes mais altos (avião durar mais)
-             if (r < 0.05) return 1.02 + Math.random() * 0.2;           // 5% muito cedo
-             if (r < 0.45) return 1.5 + Math.random() * 1.5;            // 40% entre 1.5x e 3.0x
-             if (r < 0.85) return 3.0 + Math.random() * 5.0;            // 40% entre 3x e 8x
-             return 8.0 + Math.random() * 25.0;                         // 15% acima de 8x
-        }
         
         function startGameLoop() {
             const airplane = document.getElementById('airplane');
             const multiplierDisplay = document.getElementById('multiplierDisplay');
             const crashedDisplay = document.getElementById('crashedDisplay');
-            let startTime = Date.now();
             const fps = 60;
             const interval = 1000 / fps;
             airplane.style.transition = `all ${interval / 1000}s linear`;
             gameInterval = setInterval(function() {
-                const elapsedSeconds = (Date.now() - startTime) / 1000;
-                const speedFactor = 0.35;
-                const curveFactor = 1.1;
-                currentMultiplier = 1 + Math.pow(elapsedSeconds * speedFactor, curveFactor);
-                 currentMultiplier = Math.min(currentMultiplier, 1000);
+                // currentMultiplier é alimentado pelo servidor via polling
+                currentMultiplier = Math.min(currentMultiplier, 1000);
                  if (currentMultiplier < 2.0) {
                       multiplierDisplay.style.color = '#FFC107';
                  } else if (currentMultiplier < 10.0) {
@@ -649,7 +638,7 @@
                 const maxTranslateX = 60;
                 const maxTranslateY = 60;
                 const maxRotation = 30;
-                const progress = Math.min(1, elapsedSeconds / (crashPoint / speedFactor));
+                const progress = Math.min(1, currentMultiplier / 30);
                 const xPos = 10 + (progress * maxTranslateX);
                 const yPos = 20 + (progress * maxTranslateY * Math.sin(progress * Math.PI));
                 const rotation = progress * maxRotation;
@@ -659,25 +648,7 @@
                 if (autoCashoutEnabled && currentMultiplier >= autoCashoutValue && !hasUserCashedOut) {
                     cashout();
                 }
-                if (currentMultiplier >= crashPoint && gameActive) {
-                    gameActive = false;
-                    clearInterval(gameInterval);
-                    crashedDisplay.textContent = `${crashPoint.toFixed(2)}x`;
-                    crashedDisplay.style.display = 'block';
-                    airplane.textContent = '💥';
-                    airplane.style.transition = 'none';
-                    addNewRoundToHistory(crashPoint);
-                    document.getElementById('cashoutBtn').style.display = 'none';
-                    document.getElementById('cashoutBtn').classList.add('disabled');
-                    if (!hasUserCashedOut) {
-                        setTimeout(() => {
-                            showResult(false);
-                            resetGameState();
-                        }, 1500);
-                    } else {
-                        setTimeout(() => { resetGameState(); }, 1500);
-                    }
-                }
+                // queda é controlada pelo polling do servidor
             }, interval);
         }
         
@@ -688,20 +659,24 @@
         
         async function cashout() {
             hasUserCashedOut = true;
-            gameActive = false;
-            clearInterval(gameInterval);
-            const winAmount = currentBet * currentMultiplier;
             try {
-                const resp = await api('/api/game-transaction', 'POST', { type: 'Ganho', amount: winAmount, details: `Sacou em ${currentMultiplier.toFixed(2)}x (Aposta: R$ ${currentBet.toFixed(2)})`, game: 'Aviator' });
+                const res = await fetch('/api/live/aviator/cashout', {
+                    method: 'POST',
+                    headers: { ...authHeaders(), 'X-Bet-Amount': String(currentBet) }
+                });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.message || 'Erro de conexão');
+                }
+                const resp = await res.json().catch(() => ({}));
                 localStorage.setItem('userBalance', String(resp.balance));
                 document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
+                showResult(true);
             } catch (e) {
                 alert(e.message);
             }
             document.getElementById('cashoutBtn').style.display = 'none';
             document.getElementById('cashoutBtn').classList.add('disabled');
-            addNewRoundToHistory(currentMultiplier);
-            showResult(true);
             setTimeout(() => { resetGameState(); }, 3000);
         }
         
@@ -720,7 +695,7 @@
                 content.className = 'result-content lose';
                 icon.textContent = '😭';
                 title.textContent = 'Você Perdeu!';
-                message.textContent = `O avião caiu em ${crashPoint.toFixed(2)}x e você perdeu sua aposta de R$ ${currentBet.toFixed(2)}.`;
+                message.textContent = `O avião caiu e você perdeu sua aposta de R$ ${currentBet.toFixed(2)}.`;
             }
             modal.style.display = 'flex';
         }
@@ -732,6 +707,71 @@
         async function saveGameLog(entry) {
             const res = await api('/api/logs', 'POST', entry);
             return res;
+        }
+
+        // -------- Live state polling (Aviator) --------
+        function startLivePolling() {
+            if (gameInterval) clearInterval(gameInterval);
+            startGameLoop();
+            setInterval(async () => {
+                try {
+                    const state = await api('/api/live/aviator/state');
+                    updateFromState(state);
+                } catch {}
+            }, 300);
+        }
+
+        function updateFromState(state) {
+            if (!state || state.game !== 'Aviator') return;
+            currentServerPhase = state.phase;
+            if (state.phase !== lastPhase) {
+                lastPhase = state.phase;
+                if (state.phase === 'betting') {
+                    resetGameState();
+                    const placeBtn = document.getElementById('placeBetBtn');
+                    placeBtn.classList.remove('disabled');
+                    placeBtn.disabled = false;
+                    if (!gameActive) {
+                        placeBtn.style.display = 'block';
+                        document.getElementById('cashoutBtn').style.display = 'none';
+                    }
+                }
+                if (state.phase === 'playing') {
+                    const placeBtn = document.getElementById('placeBetBtn');
+                    placeBtn.classList.add('disabled');
+                    placeBtn.disabled = true;
+                    document.getElementById('placeBetBtn').style.display = gameActive ? 'none' : 'block';
+                    document.getElementById('cashoutBtn').style.display = gameActive ? 'block' : 'none';
+                }
+                if (state.phase === 'ended') {
+                    // Mostra queda
+                    const crashedDisplay = document.getElementById('crashedDisplay');
+                    crashedDisplay.textContent = 'CRASHED!';
+                    crashedDisplay.style.display = 'block';
+                    document.getElementById('cashoutBtn').style.display = 'none';
+                    document.getElementById('cashoutBtn').classList.add('disabled');
+                    if (gameActive && !hasUserCashedOut) {
+                        gameActive = false;
+                        showResult(false);
+                        setTimeout(() => { resetGameState(); }, 1500);
+                    }
+                }
+            }
+            // Atualiza botão fora da troca de fase também
+            const placeBtn = document.getElementById('placeBetBtn');
+            if (state.phase === 'betting') {
+                placeBtn.classList.remove('disabled');
+                placeBtn.disabled = false;
+            } else {
+                placeBtn.classList.add('disabled');
+                placeBtn.disabled = true;
+            }
+            if (state.phase === 'playing' && state.playing) {
+                currentMultiplier = state.playing.currentMultiplier;
+                if (autoCashoutEnabled && currentMultiplier >= autoCashoutValue && !hasUserCashedOut) {
+                    cashout();
+                }
+            }
         }
     </script>
 </body>

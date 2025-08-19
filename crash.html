@@ -412,6 +412,8 @@
         let gameActive = false;
         let currentBet = 0;
         let selectedColor = '';
+        let hasActiveBetThisRound = false;
+        let currentRoundId = null;
         let timerInterval;
         const tape = document.getElementById('rouletteTape');
         const timerDisplay = document.getElementById('timer');
@@ -448,10 +450,12 @@
                 const resp = await api('/api/live/double/bet', 'POST', { color, amount: betAmount });
                 localStorage.setItem('userBalance', String(resp.balance));
                 document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
+                if (resp.roundId) currentRoundId = resp.roundId;
             } catch (e) { alert(e.message); toggleControls(false); return; }
             gameActive = true;
             currentBet = betAmount;
             selectedColor = color;
+            hasActiveBetThisRound = true;
             toggleControls(true);
             // aguardará o servidor iniciar/spinning
         }
@@ -470,6 +474,10 @@
 
         function handleState(state) {
             if (!state || state.game !== 'Double') return;
+            if (currentRoundId !== state.roundId) {
+                currentRoundId = state.roundId;
+                hasActiveBetThisRound = false;
+            }
             if (state.phase !== lastPhase) {
                 lastPhase = state.phase;
                 if (state.phase === 'betting') {
@@ -508,10 +516,16 @@
             });
             // Exibir resultado ao final
             setTimeout(() => {
-                const isWin = selectedColor && selectedColor === targetColor;
-                const multiplier = targetColor === 'white' ? 14 : 2;
-                const winAmount = isWin ? currentBet * multiplier : 0;
-                showResult(isWin, winAmount, targetColor);
+                if (hasActiveBetThisRound) {
+                    const isWin = selectedColor && selectedColor === targetColor;
+                    const multiplier = targetColor === 'white' ? 14 : 2;
+                    const winAmount = isWin ? currentBet * multiplier : 0;
+                    showResult(isWin, winAmount, targetColor);
+                }
+                gameActive = false;
+                currentBet = 0;
+                selectedColor = '';
+                hasActiveBetThisRound = false;
             }, 5200);
         }
 

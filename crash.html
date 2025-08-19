@@ -197,75 +197,56 @@
             font-weight: bold;
         }
 
+        /* Estilo horizontal (tipo Blaze) */
         .roulette-container {
             position: relative;
-            width: 300px;
-            height: 300px;
+            width: 100%;
+            max-width: 800px;
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            border: 4px solid #333350;
+            border-radius: 12px;
+            background: #1d1d2b;
         }
 
         .roulette-pointer {
-            width: 0;
-            height: 0;
-            border-left: 15px solid transparent;
-            border-right: 15px solid transparent;
-            border-top: 25px solid #FFC107;
             position: absolute;
-            top: -10px;
+            top: 8px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 10;
+            width: 0; height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 16px solid #FFC107;
+            z-index: 5;
         }
 
-        .roulette-wheel {
-            width: 100%;
+        .tape {
+            position: absolute;
+            left: 0;
             height: 100%;
-            border: 5px solid #333350;
-            border-radius: 50%;
-            position: relative;
-            overflow: hidden;
+            display: flex;
+            align-items: center;
+            transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
+            will-change: transform;
+        }
+
+        .cell {
+            width: 80px;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
-        }
-
-        .roulette-wheel::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: conic-gradient(
-                #fff 0deg 24deg,
-                #ff5555 24deg 48deg, #333 48deg 72deg, #ff5555 72deg 96deg,
-                #333 96deg 120deg, #ff5555 120deg 144deg, #333 144deg 168deg,
-                #ff5555 168deg 192deg, #333 192deg 216deg, #ff5555 216deg 240deg,
-                #333 240deg 264deg, #ff5555 264deg 288deg, #333 288deg 312deg,
-                #ff5555 312deg 336deg, #333 336deg 360deg
-            );
-        }
-
-        .wheel-number {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            font-size: 14px;
             font-weight: bold;
-            transform: rotate(var(--angle));
-            text-align: center;
-        }
-
-        .wheel-number span {
-            display: block;
-            transform: rotate(90deg);
-            margin-top: 10px;
             color: #fff;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+            text-transform: uppercase;
         }
-
-        .wheel-number.white span { color: #1e1e2e; text-shadow: none; }
+        .cell.red { background-color: #ff5555; }
+        .cell.black { background-color: #333; }
+        .cell.white { background-color: #fff; color: #1e1e2e; }
 
         .result-modal {
             display: none;
@@ -364,9 +345,7 @@
             <div class="timer" id="timer">Faça sua aposta!</div>
             <div class="roulette-container">
                 <div class="roulette-pointer"></div>
-                <div class="roulette-wheel" id="rouletteWheel">
-                    
-                </div>
+                <div class="tape" id="rouletteTape"></div>
             </div>
         </div>
     </div>
@@ -434,31 +413,20 @@
         let currentBet = 0;
         let selectedColor = '';
         let timerInterval;
-        const wheel = document.getElementById('rouletteWheel');
+        const tape = document.getElementById('rouletteTape');
         const timerDisplay = document.getElementById('timer');
         const betButtons = document.querySelectorAll('.bet-btn');
         const betAmountInput = document.getElementById('betAmount');
         const previousResultsContainer = document.getElementById('previousResults');
 
-        const wheelSegments = [
-            { num: 0, color: 'white' }, { num: 1, color: 'red' }, { num: 2, color: 'black' },
-            { num: 3, color: 'red' }, { num: 4, color: 'black' }, { num: 5, color: 'red' },
-            { num: 6, color: 'black' }, { num: 7, color: 'red' }, { num: 8, color: 'black' },
-            { num: 9, color: 'red' }, { num: 10, color: 'black' }, { num: 11, color: 'red' },
-            { num: 12, color: 'black' }, { num: 13, color: 'red' }, { num: 14, color: 'black' }
-        ];
+        // Fita horizontal: repete padrão [white, red, black, red, black, ...]
+        const basePattern = ['white','red','black','red','black','red','black','red','black','red','black','red','black','red','black'];
+        const visibleCells = 15;
+        const cellWidth = 80; // px (deve bater com CSS)
 
         function initializeGame() {
-            const segmentAngle = 360 / wheelSegments.length;
-            wheelSegments.forEach((seg, i) => {
-                const angle = i * segmentAngle;
-                const numberDiv = document.createElement('div');
-                numberDiv.className = `wheel-number ${seg.color}`;
-                numberDiv.style.setProperty('--angle', `${angle}deg`);
-                numberDiv.innerHTML = `<span>${seg.num}</span>`;
-                wheel.appendChild(numberDiv);
-            });
-            updatePreviousResults();
+            buildTape();
+            startStatePolling();
         }
 
         betButtons.forEach(button => {
@@ -477,58 +445,96 @@
             if (isNaN(betAmount) || betAmount <= 0) { alert('Por favor, insira um valor de aposta válido.'); return; }
             if (betAmount > userBalance) { alert('Saldo insuficiente para realizar esta aposta.'); return; }
             try {
-                const resp = await api('/api/game-transaction', 'POST', { type: 'Aposta', amount: -betAmount, details: `Apostou em ${color}`, game: 'Double' });
+                const resp = await api('/api/live/double/bet', 'POST', { color, amount: betAmount });
                 localStorage.setItem('userBalance', String(resp.balance));
                 document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
-            } catch (e) { alert(e.message); return; }
+            } catch (e) { alert(e.message); toggleControls(false); return; }
             gameActive = true;
             currentBet = betAmount;
             selectedColor = color;
             toggleControls(true);
-            startRound();
+            // aguardará o servidor iniciar/spinning
         }
 
-        function startRound() {
-            let countdown = 5;
-            timerDisplay.textContent = `Girando em ${countdown}...`;
-            timerInterval = setInterval(() => {
-                countdown--;
-                timerDisplay.textContent = `Girando em ${countdown}...`;
-                if (countdown <= 0) {
-                    clearInterval(timerInterval);
-                    spinWheel();
-                }
-            }, 1000);
-        }
-
-        function spinWheel() {
-            timerDisplay.textContent = 'Girando...';
-            const winningNumber = Math.floor(Math.random() * 15);
-            const winningSegment = wheelSegments.findIndex(s => s.num === winningNumber);
-            const segmentAngle = 360 / wheelSegments.length;
-            const targetRotation = (360 * 5) - (winningSegment * segmentAngle) - (segmentAngle / 2);
-            wheel.style.transform = `rotate(${targetRotation}deg)`;
-            setTimeout(() => { endRound(winningNumber); }, 5500);
-        }
-
-        async function endRound(winningNumber) {
-            const winningColor = wheelSegments.find(s => s.num === winningNumber).color;
-            timerDisplay.textContent = `Resultado: ${winningNumber} (${winningColor.charAt(0).toUpperCase() + winningColor.slice(1)})`;
-            let winAmount = 0;
-            let isWin = false;
-            if (selectedColor === winningColor) {
-                isWin = true;
-                const multiplier = winningColor === 'white' ? 14 : 2;
-                winAmount = currentBet * multiplier;
+        // -------- Live State Polling --------
+        let lastPhase = '';
+        let spinningTargetColor = null;
+        function startStatePolling() {
+            setInterval(async () => {
                 try {
-                    const resp = await api('/api/game-transaction', 'POST', { type: 'Ganho', amount: winAmount, details: `Ganhou com a cor ${winningColor}`, game: 'Double' });
-                    localStorage.setItem('userBalance', String(resp.balance));
-                    document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
-                } catch (e) {}
+                    const state = await api('/api/live/double/state');
+                    handleState(state);
+                } catch {}
+            }, 500);
+        }
+
+        function handleState(state) {
+            if (!state || state.game !== 'Double') return;
+            if (state.phase !== lastPhase) {
+                lastPhase = state.phase;
+                if (state.phase === 'betting') {
+                    spinningTargetColor = null;
+                    resetAnimation();
+                    toggleControls(false);
+                }
+                if (state.phase === 'spinning' && state.spinning) {
+                    spinningTargetColor = state.spinning.winningColor;
+                    startSpinAnimation(spinningTargetColor);
+                }
             }
-            saveLastResult(winningColor);
-            updatePreviousResults();
-            showResult(isWin, winAmount, winningColor);
+            if (state.phase === 'betting') {
+                timerDisplay.textContent = state.timeLeftMs ? `Apostas fecham em ${(state.timeLeftMs/1000).toFixed(0)}s` : 'Faça sua aposta!';
+            } else if (state.phase === 'spinning') {
+                timerDisplay.textContent = 'Girando...';
+            } else if (state.phase === 'ended') {
+                timerDisplay.textContent = 'Encerrando...';
+            }
+            updatePreviousResultsFromState(state.previousResults || []);
+        }
+
+        function startSpinAnimation(targetColor) {
+            // Escolhe uma célula com a cor alvo entre várias repetidas
+            const indices = [];
+            for (let i = 0; i < basePattern.length * 3; i++) {
+                if (getPatternColorAt(i) === targetColor) indices.push(i);
+            }
+            const chosenIndex = indices[Math.floor(Math.random() * indices.length)];
+            const centerIndex = Math.floor(visibleCells / 2);
+            const offsetCells = chosenIndex - centerIndex;
+            const targetPx = -(offsetCells * cellWidth);
+            tape.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            requestAnimationFrame(() => {
+                tape.style.transform = `translateX(${targetPx}px)`;
+            });
+            // Exibir resultado ao final
+            setTimeout(() => {
+                const isWin = selectedColor && selectedColor === targetColor;
+                const multiplier = targetColor === 'white' ? 14 : 2;
+                const winAmount = isWin ? currentBet * multiplier : 0;
+                showResult(isWin, winAmount, targetColor);
+            }, 5200);
+        }
+
+        function resetAnimation() {
+            tape.style.transition = 'none';
+            tape.style.transform = 'translateX(0px)';
+            // reconstroi para variar
+            buildTape();
+            setTimeout(() => {
+                tape.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            }, 50);
+        }
+
+        function buildTape() {
+            tape.innerHTML = '';
+            // três padrões para permitir deslocamento amplo
+            const sequence = [...basePattern, ...basePattern, ...basePattern];
+            sequence.forEach(color => {
+                const div = document.createElement('div');
+                div.className = `cell ${color}`;
+                div.textContent = color === 'white' ? 'x14' : 'x2';
+                tape.appendChild(div);
+            });
         }
 
         function showResult(isWin, winAmount, winningColor) {
@@ -562,10 +568,7 @@
             selectedColor = '';
             toggleControls(false);
             timerDisplay.textContent = 'Faça sua aposta!';
-            wheel.style.transition = 'none';
-            wheel.style.transform = 'rotate(0deg)';
-            wheel.offsetHeight; 
-            wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            resetAnimation();
         }
 
         function toggleControls(disabled) {
@@ -576,26 +579,19 @@
             });
         }
         
-        async function saveGameLog(entry) {
-            const res = await api('/api/logs', 'POST', entry);
-            return res;
-        }
-
-        function saveLastResult(color) {
-            const lastResults = JSON.parse(localStorage.getItem('doubleLastResults') || '[]');
-            lastResults.unshift(color);
-            if (lastResults.length > 10) { lastResults.pop(); }
-            localStorage.setItem('doubleLastResults', JSON.stringify(lastResults));
-        }
-
-        function updatePreviousResults() {
+        function updatePreviousResultsFromState(list) {
             previousResultsContainer.innerHTML = '';
-            const lastResults = JSON.parse(localStorage.getItem('doubleLastResults') || '[]');
-            lastResults.forEach(color => {
+            (list || []).forEach(color => {
                 const dot = document.createElement('div');
                 dot.className = `result-dot dot-${color}`;
                 previousResultsContainer.appendChild(dot);
             });
+        }
+
+        function getPatternColorAt(index) {
+            const pattern = basePattern;
+            const i = ((index % pattern.length) + pattern.length) % pattern.length;
+            return pattern[i];
         }
     </script>
 </body>

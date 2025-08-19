@@ -512,6 +512,7 @@
         const previousRoundsKey = 'aviatorPreviousRounds';
         const maxPreviousRounds = 10;
         let lastPhase = '';
+        let currentServerPhase = 'betting';
         
         function loadPreviousRounds() {
              const storedRounds = localStorage.getItem(previousRoundsKey);
@@ -582,6 +583,7 @@
 
         document.getElementById('placeBetBtn').addEventListener('click', async function() {
             if (gameActive || this.classList.contains('disabled')) return;
+            if (currentServerPhase !== 'betting') { alert('Apostas abrem em instantes. Aguarde a fase de apostas.'); return; }
             const betAmountInput = document.getElementById('betAmount');
             const betAmount = parseFloat(betAmountInput.value);
             const currentBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
@@ -721,12 +723,23 @@
 
         function updateFromState(state) {
             if (!state || state.game !== 'Aviator') return;
+            currentServerPhase = state.phase;
             if (state.phase !== lastPhase) {
                 lastPhase = state.phase;
                 if (state.phase === 'betting') {
                     resetGameState();
+                    const placeBtn = document.getElementById('placeBetBtn');
+                    placeBtn.classList.remove('disabled');
+                    placeBtn.disabled = false;
+                    if (!gameActive) {
+                        placeBtn.style.display = 'block';
+                        document.getElementById('cashoutBtn').style.display = 'none';
+                    }
                 }
                 if (state.phase === 'playing') {
+                    const placeBtn = document.getElementById('placeBetBtn');
+                    placeBtn.classList.add('disabled');
+                    placeBtn.disabled = true;
                     document.getElementById('placeBetBtn').style.display = gameActive ? 'none' : 'block';
                     document.getElementById('cashoutBtn').style.display = gameActive ? 'block' : 'none';
                 }
@@ -743,6 +756,15 @@
                         setTimeout(() => { resetGameState(); }, 1500);
                     }
                 }
+            }
+            // Atualiza botão fora da troca de fase também
+            const placeBtn = document.getElementById('placeBetBtn');
+            if (state.phase === 'betting') {
+                placeBtn.classList.remove('disabled');
+                placeBtn.disabled = false;
+            } else {
+                placeBtn.classList.add('disabled');
+                placeBtn.disabled = true;
             }
             if (state.phase === 'playing' && state.playing) {
                 currentMultiplier = state.playing.currentMultiplier;

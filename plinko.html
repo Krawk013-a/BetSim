@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSim - Plinko</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #1e1e2e;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        header {
+            background-color: #2a2a40;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            height: 60px;
+        }
+        
+        .logo h1 { color: #4CAF50; font-size: 20px; }
+        .logo span { color: #FFC107; }
+        
+        .user-info { display: flex; align-items: center; }
+        
+        .balance {
+            background-color: rgba(76, 175, 80, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin-right: 15px;
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .username { color: #ddd; margin-right: 15px; font-size: 14px; }
+        
+        .back-btn {
+            background-color: transparent;
+            border: 1px solid #FFC107;
+            color: #FFC107;
+            padding: 4px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        .back-btn:hover { background-color: #FFC107; color: #1e1e2e; }
+        
+        .main-content {
+            padding: 15px;
+            height: calc(100vh - 60px);
+            display: flex;
+        }
+
+        /* Painel de Controle (Esquerda) */
+        .control-panel {
+            width: 280px;
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            margin-right: 15px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            font-size: 14px;
+            color: #ddd;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .bet-input input, .control-group select {
+            background-color: #1e1e2e;
+            color: #fff;
+            border: 1px solid #333350;
+            padding: 8px;
+            border-radius: 5px;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .risk-buttons {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .risk-btn {
+            background-color: #333350;
+            border: none;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            flex: 1;
+            margin: 0 2px;
+            transition: background-color 0.3s;
+        }
+        .risk-btn.active {
+            background-color: #4CAF50;
+        }
+
+        .bet-btn {
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            border: none;
+            color: #fff;
+            background-color: #4CAF50;
+            width: 100%;
+            margin-top: auto; /* Empurra para o final */
+        }
+        .bet-btn:hover { background-color: #45a049; }
+        .bet-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Container do Jogo (Direita) */
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background-color: #2a2a40;
+            border-radius: 10px;
+            padding: 15px;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .previous-results {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .result-badge {
+            background-color: #333350;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .result-badge.win-high { color: #FFC107; }
+        .result-badge.win-mid { color: #4CAF50; }
+        .result-badge.win-low { color: #fff; }
+        .result-badge.loss { color: #ff5555; }
+
+
+        #plinkoCanvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Modal de Resultado (Reaproveitado) */
+        .result-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 20; align-items: center; justify-content: center; }
+        .result-content { background-color: #2a2a40; border-radius: 10px; padding: 20px; text-align: center; max-width: 350px; width: 90%; }
+        .result-icon { font-size: 50px; margin-bottom: 15px; }
+        .result-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+        .result-message { font-size: 14px; margin-bottom: 15px; color: #ddd; }
+        .result-btn { background-color: #4CAF50; color: #fff; border: none; padding: 8px 16px; border-radius: 5px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .result-btn:hover { background-color: #45a049; }
+        .win .result-icon, .win .result-title { color: #4CAF50; }
+        .lose .result-icon, .lose .result-title { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Bet<span>Sim</span></h1>
+        </div>
+        <div class="user-info">
+            <div class="balance" id="userBalance">R$ 0,00</div>
+            <div class="username" id="username">Usuário</div>
+            <button class="back-btn" id="backBtn">Voltar</button>
+        </div>
+    </header>
+    
+    <div class="main-content">
+        <div class="control-panel">
+            <div class="control-group">
+                <label for="betAmount">Valor da Aposta</label>
+                <div class="bet-input">
+                    <input type="number" id="betAmount" value="1" min="1" step="1">
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Nível de Risco</label>
+                <div class="risk-buttons">
+                    <button class="risk-btn active" data-risk="low">Baixo</button>
+                    <button class="risk-btn" data-risk="medium">Médio</button>
+                    <button class="risk-btn" data-risk="high">Alto</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="rows">Linhas</label>
+                <select id="rows">
+                    <option value="8">8</option>
+                    <option value="10">10</option>
+                    <option value="12" selected>12</option>
+                    <option value="14">14</option>
+                    <option value="16">16</option>
+                </select>
+            </div>
+            <div class="previous-results" id="previousResults"></div>
+            <button class="bet-btn" id="betBtn">Apostar</button>
+        </div>
+        
+        <div class="game-container">
+            <canvas id="plinkoCanvas"></canvas>
+        </div>
+    </div>
+    
+    <div class="result-modal" id="resultModal">
+        <div class="result-content" id="resultContent">
+            <div class="result-icon" id="resultIcon">🎉</div>
+            <div class="result-title" id="resultTitle">Você Ganhou!</div>
+            <div class="result-message" id="resultMessage">Você ganhou R$ 20,00!</div>
+            <button class="result-btn" id="newGameBtn">Nova Rodada</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Lógica de API e Autenticação (Reaproveitada) ---
+        function authHeaders() {
+            const token = localStorage.getItem('authToken');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : '',
+                'X-Session-Id': localStorage.getItem('sessionId') || ''
+            };
+        }
+
+        async function api(path, method = 'GET', body) {
+            // Simulação de API para o Plinko
+            if (path === '/api/plinko/drop' && method === 'POST') {
+                console.log('Simulating API call with:', body);
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        const { rows, risk } = body;
+                        const multipliers = MULTIPLIERS[rows][risk];
+                        // Simula um caminho aleatório
+                        let path = [];
+                        let position = 0; 
+                        for (let i = 0; i < rows; i++) {
+                            const direction = Math.random() < 0.5 ? 'L' : 'R';
+                            path.push(direction);
+                            if (direction === 'R') position++;
+                        }
+                        const finalIndex = position;
+                        const multiplier = multipliers[finalIndex];
+                        const payout = body.amount * multiplier;
+                        const newBalance = parseFloat(localStorage.getItem('userBalance')) - body.amount + payout;
+                        localStorage.setItem('userBalance', String(newBalance));
+
+                        resolve({
+                            path: path,
+                            multiplier: multiplier,
+                            payout: payout,
+                            balance: newBalance
+                        });
+                    }, 250);
+                });
+            }
+            // API Real (reaproveitada)
+            const res = await fetch(path, {
+                method,
+                headers: authHeaders(),
+                body: body ? JSON.stringify(body) : undefined
+            });
+            if (!res.ok) {
+                if (res.status === 401) {
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                }
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || 'Erro de conexão');
+            }
+            return res.json().catch(() => ({}));
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            if (!localStorage.getItem('authToken')) {
+                window.location.href = 'login.html';
+                return;
+            }
+            if (!localStorage.getItem('sessionId')) {
+                const sid = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem('sessionId', sid);
+            }
+            // Simulação de usuário para teste local
+            if (!localStorage.getItem('currentUser')) {
+                localStorage.setItem('currentUser', 'Tester');
+                localStorage.setItem('userBalance', '1000');
+            }
+            document.getElementById('username').textContent = localStorage.getItem('currentUser');
+            document.getElementById('userBalance').textContent = `R$ ${parseFloat(localStorage.getItem('userBalance')).toFixed(2)}`;
+            
+            initializePlinkoGame();
+        });
+        
+        document.getElementById('backBtn').addEventListener('click', () => { window.location.href = 'dashboard.html'; });
+
+        // --- Lógica Específica do Plinko ---
+        
+        let gameActive = false;
+        const betBtn = document.getElementById('betBtn');
+        const betAmountInput = document.getElementById('betAmount');
+        const riskButtons = document.querySelectorAll('.risk-btn');
+        const rowsSelect = document.getElementById('rows');
+        const previousResultsContainer = document.getElementById('previousResults');
+        let previousMultipliers = [];
+
+        const canvas = document.getElementById('plinkoCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Tabela de multiplicadores (essencial para o jogo)
+        const MULTIPLIERS = {
+            8: {
+                low: [5.6, 2.1, 1.1, 1, 0.9, 1, 1.1, 2.1, 5.6],
+                medium: [13, 3, 1.3, 0.7, 0.4, 0.7, 1.3, 3, 13],
+                high: [29, 4, 1.5, 0.3, 0.2, 0.3, 1.5, 4, 29]
+            },
+            10: {
+                low: [7, 3, 1.4, 1.1, 1, 0.9, 1, 1.1, 1.4, 3, 7],
+                medium: [22, 5, 2, 1.1, 0.6, 0.4, 0.6, 1.1, 2, 5, 22],
+                high: [76, 10, 3, 0.8, 0.3, 0.2, 0.3, 0.8, 3, 10, 76]
+            },
+            12: {
+                low: [8, 4, 1.9, 1.2, 1.1, 1, 0.9, 1, 1.1, 1.2, 1.9, 4, 8],
+                medium: [38, 9, 3, 1.5, 0.8, 0.5, 0.3, 0.5, 0.8, 1.5, 3, 9, 38],
+                high: [170, 24, 6, 1.5, 0.5, 0.2, 0.1, 0.2, 0.5, 1.5, 6, 24, 170]
+            },
+            14: {
+                low: [9, 5, 2.5, 1.5, 1.2, 1.1, 1, 0.9, 1, 1.1, 1.2, 1.5, 2.5, 5, 9],
+                medium: [70, 15, 6, 2, 1, 0.6, 0.4, 0.3, 0.4, 0.6, 1, 2, 6, 15, 70],
+                high: [420, 55, 12, 4, 0.9, 0.3, 0.2, 0.1, 0.2, 0.3, 0.9, 4, 12, 55, 420]
+            },
+            16: {
+                low: [10, 6, 3, 1.7, 1.3, 1.1, 1, 1, 0.9, 1, 1, 1.1, 1.3, 1.7, 3, 6, 10],
+                medium: [110, 25, 10, 4, 1.5, 0.8, 0.5, 0.4, 0.3, 0.4, 0.5, 0.8, 1.5, 4, 10, 25, 110],
+                high: [1000, 130, 26, 9, 4, 1.5, 0.3, 0.2, 0.1, 0.2, 0.3, 1.5, 4, 9, 26, 130, 1000]
+            }
+        };
+
+        function initializePlinkoGame() {
+            betBtn.addEventListener('click', placeBet);
+            riskButtons.forEach(btn => btn.addEventListener('click', () => {
+                riskButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                drawPlinkoBoard();
+            }));
+            rowsSelect.addEventListener('change', drawPlinkoBoard);
+            
+            window.addEventListener('resize', drawPlinkoBoard);
+            drawPlinkoBoard();
+        }
+
+        function getGameConfig() {
+            const risk = document.querySelector('.risk-btn.active').dataset.risk;
+            const rows = parseInt(rowsSelect.value, 10);
+            const betAmount = parseFloat(betAmountInput.value);
+            return { risk, rows, betAmount };
+        }
+        
+        async function placeBet() {
+            if (gameActive) return;
+            const { risk, rows, betAmount } = getGameConfig();
+            const userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
+
+            if (isNaN(betAmount) || betAmount <= 0) { alert('Valor de aposta inválido.'); return; }
+            if (betAmount > userBalance) { alert('Saldo insuficiente.'); return; }
+
+            gameActive = true;
+            toggleControls(true);
+
+            try {
+                // A chamada API agora retorna o caminho e o resultado.
+                const result = await api('/api/plinko/drop', 'POST', { amount: betAmount, risk, rows });
+                
+                document.getElementById('userBalance').textContent = `R$ ${parseFloat(result.balance).toFixed(2)}`;
+                updatePreviousMultipliers(result.multiplier);
+
+                await animateBallDrop(result.path);
+
+                const isWin = result.multiplier >= 1;
+                showResult(isWin, result.payout, result.multiplier);
+
+            } catch(e) {
+                alert(e.message);
+                gameActive = false;
+                toggleControls(false);
+            }
+        }
+
+        // --- Lógica de Animação e Desenho no Canvas ---
+
+        function drawPlinkoBoard() {
+            const container = document.querySelector('.game-container');
+            const size = Math.min(container.clientWidth, container.clientHeight) * 0.9;
+            canvas.width = size;
+            canvas.height = size;
+
+            const { rows } = getGameConfig();
+            const pinRadius = size / (rows * 5);
+            const vSpacing = (size * 0.8) / (rows + 1);
+            const hSpacing = (size * 0.8) / rows;
+            const startX = size / 2;
+            const startY = vSpacing * 1.5;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenha os pinos
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col <= row; col++) {
+                    const x = startX - (row * hSpacing / 2) + (col * hSpacing);
+                    const y = startY + (row * vSpacing);
+                    ctx.beginPath();
+                    ctx.arc(x, y, pinRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = '#7f8c8d';
+                    ctx.fill();
+                }
+            }
+
+            // Desenha os multiplicadores na base
+            drawMultipliers(size, rows, vSpacing, hSpacing, startY);
+        }
+
+        function drawMultipliers(size, rows, vSpacing, hSpacing, startY) {
+            const { risk } = getGameConfig();
+            const multipliers = MULTIPLIERS[rows][risk];
+            const boxWidth = hSpacing * 0.95;
+            const boxHeight = vSpacing * 0.5;
+            const baseY = startY + (rows * vSpacing) - boxHeight / 2;
+
+            for(let i = 0; i < multipliers.length; i++) {
+                const x = (size/2) - ((rows) * hSpacing / 2) + (i * hSpacing);
+                ctx.fillStyle = getMultiplierColor(multipliers[i]);
+                ctx.fillRect(x - boxWidth / 2, baseY, boxWidth, boxHeight);
+
+                ctx.fillStyle = '#fff';
+                ctx.font = `bold ${boxWidth / 4}px Segoe UI`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(multipliers[i] + 'x', x, baseY + boxHeight / 2);
+            }
+        }
+
+        function getMultiplierColor(multiplier) {
+            if (multiplier >= 10) return '#FFC107'; // Amarelo
+            if (multiplier >= 2) return '#e67e22'; // Laranja
+            if (multiplier > 1) return '#2ecc71'; // Verde
+            if (multiplier === 1) return '#3498db'; // Azul
+            return '#c0392b'; // Vermelho
+        }
+
+        async function animateBallDrop(path) {
+            const { rows } = getGameConfig();
+            const size = canvas.width;
+            const pinRadius = size / (rows * 5);
+            const ballRadius = pinRadius * 1.2;
+            const vSpacing = (size * 0.8) / (rows + 1);
+            const hSpacing = (size * 0.8) / rows;
+            const startX = size / 2;
+            const startY = vSpacing * 1.5;
+
+            let ball = { x: startX, y: ballRadius };
+            
+            for (let i = 0; i < path.length; i++) {
+                const row = i;
+                let currentPinIndex = path.slice(0, i).filter(d => d === 'R').length;
+                
+                const fromX = startX - (row * hSpacing / 2) + (currentPinIndex * hSpacing);
+                const fromY = startY + (row * vSpacing);
+                
+                let targetPinIndex = currentPinIndex + (path[i] === 'R' ? 1 : 0);
+                const targetX = startX - ((row + 1) * hSpacing / 2) + (targetPinIndex * hSpacing);
+                const targetY = startY + ((row + 1) * vSpacing);
+
+                await new Promise(resolve => {
+                    let animationFrame;
+                    const duration = 150; // ms
+                    let startTime = null;
+
+                    function frame(timestamp) {
+                        if (!startTime) startTime = timestamp;
+                        const progress = Math.min((timestamp - startTime) / duration, 1);
+                        
+                        ball.x = fromX + (targetX - fromX) * progress;
+                        ball.y = fromY + (targetY - fromY) * progress;
+                        
+                        drawPlinkoBoard();
+                        ctx.beginPath();
+                        ctx.arc(ball.x, ball.y, ballRadius, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fff';
+                        ctx.fill();
+
+                        if (progress < 1) {
+                            animationFrame = requestAnimationFrame(frame);
+                        } else {
+                            resolve();
+                        }
+                    }
+                    animationFrame = requestAnimationFrame(frame);
+                });
+            }
+        }
+
+        function showResult(isWin, payout, multiplier) {
+            const modal = document.getElementById('resultModal');
+            const content = document.getElementById('resultContent');
+            const icon = document.getElementById('resultIcon');
+            const title = document.getElementById('resultTitle');
+            const message = document.getElementById('resultMessage');
+            const { betAmount } = getGameConfig();
+
+            if (isWin) {
+                content.className = 'result-content win';
+                icon.textContent = '🎉';
+                title.textContent = `Você Ganhou ${multiplier}x!`;
+                message.textContent = `Parabéns! Você apostou R$ ${betAmount.toFixed(2)} e ganhou R$ ${payout.toFixed(2)}!`;
+            } else {
+                content.className = 'result-content lose';
+                icon.textContent = '😢';
+                title.textContent = `Você Perdeu ${multiplier}x!`;
+                message.textContent = `Mais sorte na próxima vez! Você perdeu R$ ${betAmount.toFixed(2)}.`;
+            }
+            modal.style.display = 'flex';
+        }
+        
+        document.getElementById('newGameBtn').addEventListener('click', function() {
+            document.getElementById('resultModal').style.display = 'none';
+            gameActive = false;
+            toggleControls(false);
+            drawPlinkoBoard(); // Limpa a bola
+        });
+
+        function toggleControls(disabled) {
+            betAmountInput.disabled = disabled;
+            riskButtons.forEach(b => b.disabled = disabled);
+            rowsSelect.disabled = disabled;
+            if (disabled) { betBtn.classList.add('disabled'); }
+            else { betBtn.classList.remove('disabled'); }
+        }
+
+        function updatePreviousMultipliers(multiplier) {
+            previousMultipliers.unshift(multiplier);
+            if (previousMultipliers.length > 20) {
+                previousMultipliers.pop();
+            }
+            
+            previousResultsContainer.innerHTML = '';
+            previousMultipliers.forEach(m => {
+                const badge = document.createElement('div');
+                badge.className = 'result-badge';
+                if (m >= 10) badge.classList.add('win-high');
+                else if (m > 1) badge.classList.add('win-mid');
+                else if (m === 1) badge.classList.add('win-low');
+                else badge.classList.add('loss');
+                badge.textContent = `${m.toFixed(2)}x`;
+                previousResultsContainer.appendChild(badge);
+            });
+        }
+    </script>
+</body>
+</html>

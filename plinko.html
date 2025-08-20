@@ -1,625 +1,543 @@
-<!DOCTYPE html>
+# Create a Plinko game HTML file that reuses the user's existing app structure and auth/api pattern.
+html_content = r"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetSim - Plinko</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BetSim - Plinko</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #1e1e2e; color: #fff; height: 100vh; overflow: hidden; }
+    header { background-color: #2a2a40; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); height: 60px; }
+    .logo h1 { color: #4CAF50; font-size: 20px; }
+    .logo span { color: #FFC107; }
+    .user-info { display: flex; align-items: center; }
+    .balance { background-color: rgba(76,175,80,0.2); padding: 6px 12px; border-radius: 20px; margin-right: 15px; color: #4CAF50; font-weight: bold; font-size: 14px; }
+    .username { color: #ddd; margin-right: 15px; font-size: 14px; }
+    .back-btn { background: transparent; border: 1px solid #FFC107; color: #FFC107; padding: 4px 8px; border-radius: 5px; cursor: pointer; transition: .3s; font-size: 12px; }
+    .back-btn:hover { background: #FFC107; color: #1e1e2e; }
 
-        body {
-            background-color: #1e1e2e;
-            color: #fff;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        header {
-            background-color: #2a2a40;
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            height: 60px;
-        }
-
-        .logo h1 {
-            color: #4CAF50;
-            font-size: 20px;
-        }
-
-        .logo span {
-            color: #FFC107;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-
-        .balance {
-            background-color: rgba(76, 175, 80, 0.2);
-            padding: 6px 12px;
-            border-radius: 20px;
-            margin-right: 15px;
-            color: #4CAF50;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .username {
-            color: #ddd;
-            margin-right: 15px;
-            font-size: 14px;
-        }
-
-        .back-btn {
-            background-color: transparent;
-            border: 1px solid #FFC107;
-            color: #FFC107;
-            padding: 4px 8px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 12px;
-        }
-
-        .back-btn:hover {
-            background-color: #FFC107;
-            color: #1e1e2e;
-        }
-
-        .main-content {
-            padding: 15px;
-            height: calc(100vh - 60px);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .game-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            background-color: #2a2a40;
-            padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            flex-shrink: 0;
-        }
-
-        .game-title {
-            font-size: 18px;
-            color: #FFC107;
-            display: flex;
-            align-items: center;
-        }
-
-        .game-title span {
-            font-size: 20px;
-            margin-right: 8px;
-        }
-
-        .game-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .bet-input {
-            display: flex;
-            align-items: center;
-            background-color: #333350;
-            padding: 4px 8px;
-            border-radius: 5px;
-        }
-
-        .bet-input label {
-            margin-right: 8px;
-            color: #ddd;
-            font-size: 12px;
-        }
-
-        .bet-input input {
-            background-color: #1e1e2e;
-            color: #fff;
-            border: none;
-            padding: 4px;
-            border-radius: 3px;
-            width: 80px;
-            font-size: 12px;
-        }
-
-        .bet-btn {
-            padding: 8px 16px;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 12px;
-            border: none;
-            color: #fff;
-        }
-
-        .bet-btn-red {
-            background-color: #ff5555;
-        }
-
-        .bet-btn-red:hover {
-            background-color: #ff2d2d;
-        }
-
-        .bet-btn-black {
-            background-color: #333;
-        }
-
-        .bet-btn-black:hover {
-            background-color: #1a1a1a;
-        }
-
-        .bet-btn-white {
-            background-color: #fff;
-            color: #1e1e2e;
-        }
-
-        .bet-btn-white:hover {
-            background-color: #e6e6e6;
-        }
-
-        .disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .game-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-            background-color: #2a2a40;
-            border-radius: 10px;
-            padding: 15px;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .result-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            z-index: 20;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .result-content {
-            background-color: #2a2a40;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            max-width: 350px;
-            width: 90%;
-        }
-
-        .result-icon {
-            font-size: 50px;
-            margin-bottom: 15px;
-        }
-
-        .result-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .result-message {
-            font-size: 14px;
-            margin-bottom: 15px;
-            color: #ddd;
-        }
-
-        .result-btn {
-            background-color: #4CAF50;
-            color: #fff;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .result-btn:hover {
-            background-color: #45a049;
-        }
-
-        .win .result-icon,
-        .win .result-title {
-            color: #4CAF50;
-        }
-
-        .lose .result-icon,
-        .lose .result-title {
-            color: #ff6b6b;
-        }
-
-        /* Plinko specific styles */
-        #plinkoBoard {
-            width: 100%;
-            max-width: 600px;
-            height: 100%;
-            position: relative;
-            background-color: #333350;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .peg {
-            position: absolute;
-            background-color: #555;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .bin {
-            position: absolute;
-            bottom: 0;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-            border-top: 2px solid #555;
-        }
-
-        .bin-05 {
-            background-color: #ff5555;
-        }
-
-        .bin-1 {
-            background-color: #e6e6e6;
-            color: #1e1e2e;
-        }
-
-        .bin-2 {
-            background-color: #4CAF50;
-        }
-
-        .ball {
-            position: absolute;
-            background-color: #FFC107;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            box-shadow: 0 0 5px #FFC107;
-        }
-    </style>
+    .main-content { padding: 15px; height: calc(100vh - 60px); display: grid; grid-template-columns: 1fr 320px; grid-gap: 15px; }
+    .game-container { background: #2a2a40; border-radius: 12px; position: relative; overflow: hidden; padding: 10px; }
+    .sidebar { background: #2a2a40; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+    .game-title { font-size: 18px; color: #FFC107; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .control { background: #333350; border-radius: 8px; padding: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-gap: 8px; align-items: center; }
+    .control label { color: #ddd; font-size: 12px; }
+    .control input, .control select { background: #1e1e2e; color: #fff; border: none; padding: 6px; border-radius: 6px; font-size: 14px; }
+    .btn { padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: .25s; border: none; color: #fff; }
+    .btn-primary { background: #4CAF50; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-secondary { background: #444; }
+    .btn-secondary:hover { filter: brightness(1.1); }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .muted { color: #cbd5e1; font-size: 12px; }
+    canvas { background: #1b1b28; width: 100%; height: 100%; border-radius: 8px; display: block; }
+    .legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .legend .slot { background: #1b1b28; border: 1px solid #333350; border-radius: 6px; padding: 6px; text-align: center; }
+    .chip { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .chip.low { background: #69c0ff; } .chip.med { background: #ffd666; } .chip.high { background: #ff7875; }
+    .results { display: flex; flex-wrap: wrap; gap: 6px; max-height: 84px; overflow: auto; }
+    .badge { background:#1b1b28; border:1px solid #333350; padding:4px 8px; border-radius: 999px; font-size: 12px; }
+    .divider { height:1px; background:#333350; margin: 6px 0; }
+    .disabled { opacity:.55; cursor: not-allowed; }
+    .toast { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.6); padding: 6px 10px; border-radius: 6px; font-size: 12px; pointer-events: none; }
+  </style>
 </head>
 <body>
-    <header>
-        <div class="logo">
-            <h1>Bet<span>Sim</span></h1>
-        </div>
-
-        <div class="user-info">
-            <div class="balance" id="userBalance">R$ 0,00</div>
-            <div class="username" id="username">Usuário</div>
-            <button class="back-btn" id="backBtn">Voltar</button>
-        </div>
-    </header>
-
-    <div class="main-content">
-        <div class="game-header">
-            <div class="game-title">
-                <span>🟢</span> Plinko
-            </div>
-
-            <div class="game-controls">
-                <div class="bet-input">
-                    <label for="betAmount">Aposta:</label>
-                    <input type="number" id="betAmount" value="10" min="1" step="1">
-                </div>
-
-                <button class="bet-btn bet-btn-red" id="dropBallBtn">Soltar Bola</button>
-            </div>
-        </div>
-
-        <div class="game-container">
-            <div id="plinkoBoard"></div>
-        </div>
+  <header>
+    <div class="logo"><h1>Bet<span>Sim</span></h1></div>
+    <div class="user-info">
+      <div class="balance" id="userBalance">R$ 0,00</div>
+      <div class="username" id="username">Usuário</div>
+      <button class="back-btn" id="backBtn">Voltar</button>
     </div>
+  </header>
 
-    <div class="result-modal" id="resultModal">
-        <div class="result-content" id="resultContent">
-            <div class="result-icon" id="resultIcon">🎉</div>
-            <div class="result-title" id="resultTitle">Você Ganhou!</div>
-            <div class="result-message" id="resultMessage">Você ganhou R$ 20,00!</div>
-            <button class="result-btn" id="newGameBtn">Nova Rodada</button>
-        </div>
+  <div class="main-content">
+    <div class="game-container">
+      <div class="game-title">🟡 Plinko</div>
+      <div id="toast" class="toast" style="display:none;"></div>
+      <canvas id="plinkoCanvas"></canvas>
     </div>
+    <aside class="sidebar">
+      <div class="control">
+        <label for="betAmount">Aposta</label>
+        <input type="number" id="betAmount" min="1" step="1" value="10"/>
+        <label for="rows">Linhas</label>
+        <select id="rows"></select>
+        <label for="risk">Risco</label>
+        <select id="risk">
+          <option value="low">Baixo</option>
+          <option value="med">Médio</option>
+          <option value="high">Alto</option>
+        </select>
+        <label for="balls">Bolinhas</label>
+        <input type="number" id="balls" min="1" step="1" value="1"/>
+      </div>
 
-    <script>
-        function authHeaders() {
-            const token = localStorage.getItem('authToken');
-            return {
-                'Content-Type': 'application/json',
-                'Authorization': token ? `Bearer ${token}` : '',
-                'X-Session-Id': localStorage.getItem('sessionId') || ''
-            };
+      <div class="row">
+        <button id="startBtn" class="btn btn-primary">Iniciar</button>
+        <button id="clearBtn" class="btn btn-secondary">Limpar</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="legend" id="legend"></div>
+
+      <div class="divider"></div>
+
+      <div class="muted">Últimos resultados</div>
+      <div class="results" id="results"></div>
+    </aside>
+  </div>
+
+  <script>
+    // === Infraestrutura compartilhada (reutilizada do seu projeto) ===
+    function authHeaders() {
+      const token = localStorage.getItem('authToken');
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+        'X-Session-Id': localStorage.getItem('sessionId') || ''
+      };
+    }
+
+    async function api(path, method = 'GET', body) {
+      const res = await fetch(path, {
+        method,
+        headers: authHeaders(),
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.clear();
+          window.location.href = 'login.html';
+        }
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Erro de conexão');
+      }
+      return res.json().catch(() => ({}));
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!localStorage.getItem('authToken')) {
+        window.location.href = 'login.html';
+        return;
+      }
+      if (!localStorage.getItem('sessionId')) {
+        const sid = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem('sessionId', sid);
+      }
+      try {
+        const me = await api('/api/me');
+        localStorage.setItem('currentUser', me.username);
+        localStorage.setItem('userBalance', String(me.balance || 0));
+        document.getElementById('username').textContent = me.username;
+        document.getElementById('userBalance').textContent = `R$ ${parseFloat(me.balance || 0).toFixed(2)}`;
+      } catch (e) { /* offline/local */ }
+      initPlinko();
+    });
+
+    document.getElementById('backBtn').addEventListener('click', () => {
+      window.location.href = 'dashboard.html';
+    });
+
+    // === Utilidades ===
+    function formatBRL(v) { return `R$ ${Number(v).toFixed(2)}`; }
+    function toast(msg, ms=1200) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      clearTimeout(toast._id);
+      toast._id = setTimeout(()=> t.style.display='none', ms);
+    }
+
+    // === Modelo de multiplicadores ===
+    // Tabelas aproximadas (similares ao estilo de jogos Plinko). São simétricas.
+    // Para cada par (linhas, risco) geramos multiplicadores por slot (da esquerda -> direita).
+    const PAY_TABLES = {
+      low: {
+        8:  [1.2, 1.1, 1.0, 0.9, 0.9, 1.0, 1.1, 1.2,],
+        10: [1.5, 1.2, 1.1, 1.0, 0.9, 0.9, 1.0, 1.1, 1.2, 1.5],
+        12: [2.0, 1.4, 1.2, 1.1, 1.0, 0.9, 0.9, 1.0, 1.1, 1.2, 1.4, 2.0],
+        14: [2.8, 1.8, 1.3, 1.1, 1.0, 0.95, 0.9, 0.95, 1.0, 1.1, 1.3, 1.8, 2.8,],
+        16: [4.0, 2.2, 1.5, 1.2, 1.05, 0.95, 0.9, 0.9, 0.9, 0.95, 1.05, 1.2, 1.5, 2.2, 4.0, 5.0]
+      },
+      med: {
+        8:  [2.0, 1.4, 1.1, 0.8, 0.8, 1.1, 1.4, 2.0],
+        10: [3.0, 1.8, 1.2, 0.9, 0.8, 0.8, 0.9, 1.2, 1.8, 3.0],
+        12: [4.5, 2.4, 1.4, 1.0, 0.8, 0.75, 0.75, 0.8, 1.0, 1.4, 2.4, 4.5],
+        14: [7.0, 3.2, 1.8, 1.1, 0.9, 0.8, 0.75, 0.75, 0.8, 0.9, 1.1, 1.8, 3.2, 7.0],
+        16: [10.0, 4.0, 2.0, 1.2, 0.95, 0.85, 0.8, 0.75, 0.75, 0.8, 0.85, 0.95, 1.2, 2.0, 4.0, 10.0]
+      },
+      high: {
+        8:  [5.0, 2.5, 1.2, 0.6, 0.6, 1.2, 2.5, 5.0],
+        10: [10.0, 3.6, 1.5, 0.7, 0.6, 0.6, 0.7, 1.5, 3.6, 10.0],
+        12: [18.0, 6.0, 2.0, 1.0, 0.7, 0.55, 0.55, 0.7, 1.0, 2.0, 6.0, 18.0],
+        14: [35.0, 9.0, 3.0, 1.3, 0.8, 0.6, 0.5, 0.5, 0.6, 0.8, 1.3, 3.0, 9.0, 35.0],
+        16: [76.0, 14.0, 4.0, 1.6, 0.9, 0.7, 0.55, 0.45, 0.45, 0.55, 0.7, 0.9, 1.6, 4.0, 14.0, 76.0]
+      }
+    };
+
+    // === Estado do jogo ===
+    const rowsSelect = document.getElementById('rows');
+    [8,10,12,14,16].forEach(r => {
+      const opt = document.createElement('option'); opt.value = r; opt.textContent = r + ' linhas'; rowsSelect.appendChild(opt);
+    });
+    rowsSelect.value = 12;
+
+    const riskSelect = document.getElementById('risk');
+    const betInput  = document.getElementById('betAmount');
+    const ballsInput = document.getElementById('balls');
+    const startBtn = document.getElementById('startBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const legendEl = document.getElementById('legend');
+    const resultsEl = document.getElementById('results');
+
+    let running = false;
+    let droppingQueue = [];  // valores a soltar (cada item: {bet, rows, risk})
+    let lastPayout = [];
+
+    // === Canvas/Board config ===
+    const canvas = document.getElementById('plinkoCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H, scale;
+    const board = {
+      left: 40,
+      right: 40,
+      top: 40,
+      bottom: 120,   // espaço para as caçapas
+      pegRadius: 5,
+      ballRadius: 7,
+      gravity: 1600, // px/s^2
+      restitution: 0.45,
+      airFriction: 0.0012,
+      wallFriction: 0.02
+    };
+
+    // Dinâmica
+    let pegs = [];
+    let slots = []; // {x0, x1}
+    let balls = [];
+
+    function resize() {
+      // Responsivo mantendo proporção do tabuleiro
+      const bounds = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(480, Math.floor(bounds.width));
+      canvas.height = Math.max(520, Math.floor(bounds.height - 10));
+      W = canvas.width; H = canvas.height;
+      scale = 1;
+      rebuildGeometry();
+    }
+
+    window.addEventListener('resize', resize);
+
+    function rebuildGeometry() {
+      const rows = Number(rowsSelect.value);
+      pegs = [];
+      slots = [];
+      const usableW = W - board.left - board.right;
+      const usableH = H - board.top - board.bottom;
+
+      // malha triangular
+      const cols = rows + 1;
+      const rowStep = usableH / rows;
+      const colStep = Math.min(usableW / cols, 40);
+
+      const offsetX = (W - (colStep * cols)) / 2 + colStep/2;
+      for (let r = 0; r < rows; r++) {
+        const y = board.top + r * rowStep + 30;
+        const startX = offsetX + (r % 2 ? colStep/2 : 0);
+        const count = cols - (r % 2 ? 1 : 0);
+        for (let c = 0; c < count; c++) {
+          const x = startX + c * colStep;
+          pegs.push({x, y, r: board.pegRadius});
+        }
+      }
+
+      // slots
+      const slotsCount = rows; // número de "vãos" entre a última linha de pinos + bordas => rows slots
+      const baseY = board.top + usableH + 20;
+      const slotStep = colStep;
+      const startSlotX = offsetX - slotStep/2;
+      slots.length = 0;
+      for (let i = 0; i < slotsCount; i++) {
+        const x0 = startSlotX + i * slotStep;
+        const x1 = x0 + slotStep;
+        slots.push({x0, x1, y: baseY});
+      }
+    }
+
+    // === Física simples de círculos e paredes ===
+    function spawnBall() {
+      const rows = Number(rowsSelect.value);
+      const usableW = W - board.left - board.right;
+      const offsetX = (W - usableW) / 2;
+      const startX = W/2 + (Math.random()-0.5) * 4; // leve variação
+      const startY = 10;
+      balls.push({
+        x: startX, y: startY, vx: 0, vy: 0, r: board.ballRadius, rows,
+        risk: riskSelect.value, bet: Number(betInput.value), alive: true, settled: false, slotIndex: -1
+      });
+    }
+
+    function stepPhysics(dt) {
+      for (const b of balls) {
+        if (!b.alive) continue;
+        // gravidade
+        b.vy += board.gravity * dt;
+
+        // movimento
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+
+        // atrito do ar simples
+        b.vx *= (1 - board.airFriction);
+        b.vy *= (1 - board.airFriction);
+
+        // colisão com paredes (laterais)
+        if (b.x - b.r < board.left) {
+          b.x = board.left + b.r;
+          b.vx = -b.vx * (board.restitution + 0.1);
+          b.vy *= (1 - board.wallFriction);
+        }
+        if (b.x + b.r > W - board.right) {
+          b.x = W - board.right - b.r;
+          b.vx = -b.vx * (board.restitution + 0.1);
+          b.vy *= (1 - board.wallFriction);
         }
 
-        async function api(path, method = 'GET', body) {
-            const res = await fetch(path, {
-                method,
-                headers: authHeaders(),
-                body: body ? JSON.stringify(body) : undefined
-            });
-            if (!res.ok) {
-                if (res.status === 401) {
-                    localStorage.clear();
-                    window.location.href = 'login.html';
-                }
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.message || 'Erro de conexão');
-            }
-            return res.json().catch(() => ({}));
+        // colisão com pinos
+        for (const p of pegs) {
+          const dx = b.x - p.x, dy = b.y - p.y;
+          const dist2 = dx*dx + dy*dy;
+          const minDist = b.r + p.r;
+          if (dist2 < minDist*minDist) {
+            const dist = Math.max(0.0001, Math.sqrt(dist2));
+            const nx = dx / dist, ny = dy / dist; // normal
+            // reposiciona fora do pino
+            const overlap = (minDist - dist);
+            b.x += nx * overlap;
+            b.y += ny * overlap;
+            // componente normal da velocidade
+            const vn = b.vx * nx + b.vy * ny;
+            const tx = -ny, ty = nx;
+            const vt = b.vx * tx + b.vy * ty;
+            // reflete normal com restituição, mantém tangencial com leve atrito
+            const vnAfter = -vn * (0.5 + Math.random()*0.15);
+            const vtAfter = vt * (1 - 0.08);
+            b.vx = vnAfter * nx + vtAfter * tx;
+            b.vy = vnAfter * ny + vtAfter * ty;
+            // anti-enrosco: leve jitter
+            b.vx += (Math.random()-0.5) * 10;
+          }
         }
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            if (!localStorage.getItem('authToken')) {
-                window.location.href = 'login.html';
-                return;
-            }
-            if (!localStorage.getItem('sessionId')) {
-                const sid = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
-                localStorage.setItem('sessionId', sid);
-            }
-            try {
-                const me = await api('/api/me');
-                localStorage.setItem('currentUser', me.username);
-                localStorage.setItem('userBalance', String(me.balance || 0));
-                document.getElementById('username').textContent = me.username;
-                document.getElementById('userBalance').textContent = `R$ ${parseFloat(me.balance || 0).toFixed(2)}`;
-            } catch (e) {
-                return;
-            }
-            initializePlinko();
-        });
-
-        document.getElementById('backBtn').addEventListener('click', function() {
-            window.location.href = 'dashboard.html';
-        });
-
-        const dropBallBtn = document.getElementById('dropBallBtn');
-        const betAmountInput = document.getElementById('betAmount');
-        const plinkoBoard = document.getElementById('plinkoBoard');
-        const pegSize = 10;
-        const binHeight = 40;
-        const ballSize = 15;
-        let isDropping = false;
-
-        const pegs = [
-            [5],
-            [4, 6],
-            [3, 5, 7],
-            [2, 4, 6, 8],
-            [1, 3, 5, 7, 9],
-            [0, 2, 4, 6, 8, 10],
-            [1, 3, 5, 7, 9, 11],
-            [0, 2, 4, 6, 8, 10, 12],
-            [1, 3, 5, 7, 9, 11, 13],
-            [0, 2, 4, 6, 8, 10, 12, 14],
-        ];
-
-        const binMultipliers = [
-            0.5, 2, 0.5, 2, 0.5, 14, 0.5, 2, 0.5, 2, 0.5
-        ];
-
-        function initializePlinko() {
-            createBoard();
-            dropBallBtn.addEventListener('click', () => {
-                if (isDropping) return;
-                dropBall();
-            });
+        // base / caçapas
+        const floorY = H - board.bottom + 10;
+        if (b.y + b.r > floorY) {
+          // travar no chão e decidir slot
+          b.y = floorY - b.r;
+          // lenta dissipação
+          b.vx *= 0.9;
+          b.vy = 0;
+          // se horizontalmente quase parado, considerar assentado
+          if (Math.abs(b.vx) < 8) {
+            b.settled = true;
+          }
         }
 
-        function createBoard() {
-            plinkoBoard.innerHTML = '';
-            const boardWidth = plinkoBoard.offsetWidth;
-            const boardHeight = plinkoBoard.offsetHeight;
-
-            // Create pegs
-            const rowHeight = (boardHeight - binHeight) / pegs.length;
-            pegs.forEach((row, rowIndex) => {
-                const rowWidth = row.length * (pegSize * 4);
-                const xOffset = (boardWidth - rowWidth) / 2;
-
-                row.forEach(pegIndex => {
-                    const peg = document.createElement('div');
-                    peg.className = 'peg';
-                    peg.style.top = `${(rowIndex + 1) * rowHeight - pegSize / 2}px`;
-                    peg.style.left = `${xOffset + pegIndex * (pegSize * 4)}px`;
-                    plinkoBoard.appendChild(peg);
-                });
-            });
-
-            // Create bins
-            const binWidth = boardWidth / binMultipliers.length;
-            binMultipliers.forEach((multiplier, index) => {
-                const bin = document.createElement('div');
-                bin.className = `bin bin-${multiplier.toString().replace('.', '')}`;
-                bin.textContent = `x${multiplier}`;
-                bin.style.width = `${binWidth}px`;
-                bin.style.left = `${index * binWidth}px`;
-                plinkoBoard.appendChild(bin);
-            });
-        }
-
-        async function dropBall() {
-            isDropping = true;
-            toggleControls(true);
-            const betAmount = parseFloat(betAmountInput.value);
-            const userBalance = parseFloat(localStorage.getItem('userBalance') || '0.00');
-
-            if (isNaN(betAmount) || betAmount <= 0) {
-                alert('Por favor, insira um valor de aposta válido.');
-                toggleControls(false);
-                return;
+        // entrou em caçapa?
+        if (b.settled && b.slotIndex < 0) {
+          for (let i=0;i<slots.length;i++) {
+            const s = slots[i];
+            if (b.x >= s.x0 && b.x < s.x1) {
+              b.slotIndex = i;
+              break;
             }
-            if (betAmount > userBalance) {
-                alert('Saldo insuficiente para realizar esta aposta.');
-                toggleControls(false);
-                return;
-            }
-
-            let finalBinIndex;
-            try {
-                const resp = await api('/api/live/plinko/drop', 'POST', { amount: betAmount });
-                finalBinIndex = resp.finalBinIndex;
-            } catch (e) {
-                alert(e.message);
-                toggleControls(false);
-                isDropping = false;
-                return;
-            }
-
-            const ball = document.createElement('div');
-            ball.className = 'ball';
-            const startX = plinkoBoard.offsetWidth / 2 - ballSize / 2;
-            const startY = 0;
-            ball.style.left = `${startX}px`;
-            ball.style.top = `${startY}px`;
-            plinkoBoard.appendChild(ball);
-
-            // Simulation of physics
-            let currentX = startX;
-            let currentY = startY;
-            let velocityX = (Math.random() - 0.5) * 5;
-            let velocityY = 0;
-            const gravity = 0.5;
-            const friction = 0.98;
-            const restitution = 0.6;
-            let currentPegRow = -1;
-
-            const animate = () => {
-                velocityY += gravity;
-                currentX += velocityX;
-                currentY += velocityY;
-
-                // Collision with board edges
-                if (currentX < 0 || currentX + ballSize > plinkoBoard.offsetWidth) {
-                    velocityX *= -restitution;
-                    currentX = Math.max(0, Math.min(currentX, plinkoBoard.offsetWidth - ballSize));
-                }
-
-                // Collision with pegs
-                const boardWidth = plinkoBoard.offsetWidth;
-                const boardHeight = plinkoBoard.offsetHeight;
-                const rowHeight = (boardHeight - binHeight) / pegs.length;
-
-                const newPegRow = Math.floor(currentY / rowHeight);
-                if (newPegRow > currentPegRow && newPegRow < pegs.length) {
-                    const row = pegs[newPegRow];
-                    const rowWidth = row.length * (pegSize * 4);
-                    const xOffset = (boardWidth - rowWidth) / 2;
-                    row.forEach(pegIndex => {
-                        const pegX = xOffset + pegIndex * (pegSize * 4);
-                        const pegY = (newPegRow + 1) * rowHeight;
-                        const dist = Math.sqrt(Math.pow(currentX + ballSize / 2 - pegX, 2) + Math.pow(currentY + ballSize / 2 - pegY, 2));
-
-                        if (dist < (ballSize / 2 + pegSize / 2)) {
-                            const angle = Math.atan2(currentY + ballSize / 2 - pegY, currentX + ballSize / 2 - pegX);
-                            const newVelX = Math.cos(angle) * (restitution * Math.sqrt(velocityX * velocityX + velocityY * velocityY));
-                            const newVelY = Math.sin(angle) * (restitution * Math.sqrt(velocityX * velocityX + velocityY * velocityY));
-                            velocityX = newVelX;
-                            velocityY = newVelY;
-                        }
-                    });
-                    currentPegRow = newPegRow;
-                }
-
-                // Check if ball has reached the bins
-                if (currentY + ballSize >= plinkoBoard.offsetHeight - binHeight) {
-                    ball.style.top = `${plinkoBoard.offsetHeight - binHeight - ballSize}px`;
-                    endGame(finalBinIndex);
-                    return;
-                }
-
-                ball.style.left = `${currentX}px`;
-                ball.style.top = `${currentY}px`;
-                requestAnimationFrame(animate);
-            };
-
-            animate();
+          }
         }
 
-        async function endGame(finalBinIndex) {
-            const multiplier = binMultipliers[finalBinIndex];
-            const betAmount = parseFloat(betAmountInput.value);
-            const winAmount = betAmount * multiplier;
-            const isWin = multiplier > 1;
-
-            const resp = await api('/api/me');
-            localStorage.setItem('userBalance', String(resp.balance));
-            document.getElementById('userBalance').textContent = `R$ ${parseFloat(resp.balance).toFixed(2)}`;
-
-            showResult(isWin, winAmount, multiplier);
-            isDropping = false;
+        // finalizar bola com slot definido (um pequeno delay para visual)
+        if (b.slotIndex >= 0) {
+          b.alive = false;
+          payoutBall(b);
         }
+      }
+      // remover bolas processadas
+      balls = balls.filter(b => b.alive);
+    }
 
-        function showResult(isWin, winAmount, multiplier) {
-            const modal = document.getElementById('resultModal');
-            const content = document.getElementById('resultContent');
-            const icon = document.getElementById('resultIcon');
-            const title = document.getElementById('resultTitle');
-            const message = document.getElementById('resultMessage');
-            if (isWin) {
-                content.className = 'result-content win';
-                icon.textContent = '🎉';
-                title.textContent = 'Você Ganhou!';
-                message.textContent = `Parabéns! O multiplicador foi x${multiplier} e você ganhou R$ ${winAmount.toFixed(2)}!`;
-            } else {
-                content.className = 'result-content lose';
-                icon.textContent = '😢';
-                title.textContent = 'Você Perdeu!';
-                message.textContent = `O multiplicador foi x${multiplier}. Mais sorte na próxima vez! Você perdeu R$ ${(parseFloat(betAmountInput.value) - winAmount).toFixed(2)}.`;
-            }
-            modal.style.display = 'flex';
+    function draw() {
+      ctx.clearRect(0,0,W,H);
+      // moldura
+      ctx.save();
+      ctx.strokeStyle = '#333350';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(board.left, board.top, W - board.left - board.right, H - board.top - board.bottom);
+      ctx.restore();
+
+      // pinos
+      ctx.save();
+      ctx.fillStyle = '#8087a2';
+      for (const p of pegs) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // caçapas (mostrar multiplicadores)
+      const rows = Number(rowsSelect.value);
+      const risk = riskSelect.value;
+      const pays = PAY_TABLES[risk][rows];
+      if (pays) {
+        ctx.save();
+        const txtY = H - board.bottom + 36;
+        const s = slots;
+        for (let i=0;i<s.length;i++) {
+          const slot = s[i];
+          const mid = (slot.x0 + slot.x1) / 2;
+          ctx.fillStyle = '#1b1b28';
+          ctx.fillRect(slot.x0, H - board.bottom, (slot.x1-slot.x0), board.bottom-6);
+          ctx.strokeStyle = '#333350';
+          ctx.strokeRect(slot.x0, H - board.bottom, (slot.x1-slot.x0), board.bottom-6);
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '12px Segoe UI';
+          ctx.textAlign = 'center';
+          ctx.fillText(pays[i].toFixed(2)+'x', mid, txtY);
         }
+        ctx.restore();
+      }
 
-        document.getElementById('newGameBtn').addEventListener('click', function() {
-            document.getElementById('resultModal').style.display = 'none';
-            resetGame();
-        });
+      // bolas
+      ctx.save();
+      ctx.fillStyle = '#FFC107';
+      for (const b of balls) {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
 
-        function resetGame() {
-            toggleControls(false);
-            const ball = document.querySelector('.ball');
-            if (ball) ball.remove();
+    // === Payout e saldo ===
+    function payoutBall(b) {
+      const rows = b.rows;
+      const risk = b.risk;
+      const pays = PAY_TABLES[risk][rows];
+      if (!pays) return;
+      const idx = Math.max(0, Math.min(pays.length-1, b.slotIndex));
+      const multi = pays[idx];
+      const win = b.bet * multi;
+      // atualizar saldo localmente; se tiver backend, poderia chamar endpoint:
+      // await api('/api/live/plinko/bet', 'POST', { amount: b.bet, rows, risk, slot: idx, multiplier: multi });
+      const userBalance = parseFloat(localStorage.getItem('userBalance') || '0');
+      const newBal = userBalance - b.bet + win;
+      localStorage.setItem('userBalance', String(newBal));
+      document.getElementById('userBalance').textContent = formatBRL(newBal);
+      // registrar resultado
+      lastPayout.unshift({m: multi, win});
+      while (lastPayout.length > 24) lastPayout.pop();
+      renderResults();
+      toast(`${multi.toFixed(2)}x • ${formatBRL(win)}`);
+    }
+
+    function renderResults() {
+      resultsEl.innerHTML = '';
+      for (const r of lastPayout) {
+        const span = document.createElement('span');
+        span.className = 'badge';
+        span.textContent = r.m.toFixed(2) + 'x';
+        resultsEl.appendChild(span);
+      }
+    }
+
+    function renderLegend() {
+      const rows = Number(rowsSelect.value);
+      const risk = riskSelect.value;
+      const pays = PAY_TABLES[risk][rows];
+      legendEl.innerHTML = '';
+      if (!pays) return;
+      const mid = Math.floor(pays.length/2);
+      const lo = Math.min(...pays);
+      const hi = Math.max(...pays);
+      const chipClass = risk === 'low' ? 'low' : risk === 'med' ? 'med' : 'high';
+      // extremos e centro
+      const parts = [
+        {label: 'Extremo Esq.', v: pays[0]},
+        {label: 'Centro', v: pays[mid]},
+        {label: 'Extremo Dir.', v: pays[pays.length-1]},
+      ];
+      for (const p of parts) {
+        const div = document.createElement('div');
+        div.className = 'slot';
+        div.innerHTML = `<div class="muted">${p.label}</div><div><span class="chip ${chipClass}"></span><strong>${p.v.toFixed(2)}x</strong></div>`;
+        legendEl.appendChild(div);
+      }
+    }
+
+    // === Loop principal ===
+    let last = 0;
+    function loop(ts) {
+      const t = ts/1000;
+      const dt = Math.min(0.033, t - (last||t));
+      last = t;
+      stepPhysics(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    // === Init ===
+    function initPlinko() {
+      resize();
+      renderLegend();
+      requestAnimationFrame(loop);
+    }
+
+    // === Controles ===
+    startBtn.addEventListener('click', () => {
+      if (running) return;
+      const bet = Number(betInput.value);
+      const ballsCount = Number(ballsInput.value);
+      const balance = parseFloat(localStorage.getItem('userBalance') || '0');
+      if (isNaN(bet) || bet <= 0) { toast('Informe uma aposta válida.'); return; }
+      if (isNaN(ballsCount) || ballsCount <= 0 || ballsCount > 50) { toast('Quantidade de bolinhas: 1 a 50.'); return; }
+      const totalCost = bet * ballsCount;
+      if (totalCost > balance) { toast('Saldo insuficiente.'); return; }
+
+      // debitar custo total ao iniciar
+      localStorage.setItem('userBalance', String(balance - totalCost));
+      document.getElementById('userBalance').textContent = formatBRL(balance - totalCost);
+
+      running = true;
+      startBtn.classList.add('disabled');
+
+      // fila de drops
+      let i = 0;
+      const interval = setInterval(() => {
+        spawnBall();
+        if (++i >= ballsCount) {
+          clearInterval(interval);
+          running = false;
+          startBtn.classList.remove('disabled');
         }
+      }, Math.max(120, 600 - Math.min(450, ballsCount*10)));
+    });
 
-        function toggleControls(disabled) {
-            betAmountInput.disabled = disabled;
-            dropBallBtn.disabled = disabled;
-            if (disabled) {
-                dropBallBtn.classList.add('disabled');
-            } else {
-                dropBallBtn.classList.remove('disabled');
-            }
-        }
-    </script>
+    clearBtn.addEventListener('click', () => {
+      balls.length = 0;
+      lastPayout.length = 0;
+      renderResults();
+      toast('Limpo');
+    });
+
+    rowsSelect.addEventListener('change', () => {
+      rebuildGeometry();
+      renderLegend();
+    });
+    riskSelect.addEventListener('change', renderLegend);
+
+  </script>
 </body>
 </html>

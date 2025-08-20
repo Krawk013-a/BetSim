@@ -156,27 +156,27 @@
     // Para cada par (linhas, risco) geramos multiplicadores por slot (da esquerda -> direita).
     const PAY_TABLES = {
       low: {
-        8:  [1.2, 1.1, 1.0, 0.9, 0.9, 1.0, 1.1, 1.2,],
-        10: [1.5, 1.2, 1.1, 1.0, 0.9, 0.9, 1.0, 1.1, 1.2, 1.5],
-        12: [2.0, 1.4, 1.2, 1.1, 1.0, 0.9, 0.9, 1.0, 1.1, 1.2, 1.4, 2.0],
-        14: [2.8, 1.8, 1.3, 1.1, 1.0, 0.95, 0.9, 0.95, 1.0, 1.1, 1.3, 1.8, 2.8,],
-        16: [4.0, 2.2, 1.5, 1.2, 1.05, 0.95, 0.9, 0.9, 0.9, 0.95, 1.05, 1.2, 1.5, 2.2, 4.0, 5.0]
+        8:  [1.50, 1.20, 1.10, 1.00, 0.90, 1.00, 1.10, 1.20, 1.50],
+        10: [2.00, 1.50, 1.20, 1.10, 1.00, 0.90, 1.00, 1.10, 1.20, 1.50, 2.00],
+        12: [2.50, 1.80, 1.30, 1.15, 1.05, 1.00, 0.90, 1.00, 1.05, 1.15, 1.30, 1.80, 2.50],
+        14: [3.20, 2.20, 1.60, 1.25, 1.10, 1.02, 0.96, 0.95, 0.96, 1.02, 1.10, 1.25, 1.60, 2.20, 3.20],
+        16: [4.00, 2.80, 1.90, 1.40, 1.20, 1.05, 1.00, 0.95, 0.90, 0.95, 1.00, 1.05, 1.20, 1.40, 1.90, 2.80, 4.00]
       },
       med: {
-        8:  [2.0, 1.4, 1.1, 0.8, 0.8, 1.1, 1.4, 2.0],
-        10: [3.0, 1.8, 1.2, 0.9, 0.8, 0.8, 0.9, 1.2, 1.8, 3.0],
-        12: [4.5, 2.4, 1.4, 1.0, 0.8, 0.75, 0.75, 0.8, 1.0, 1.4, 2.4, 4.5],
-        14: [7.0, 3.2, 1.8, 1.1, 0.9, 0.8, 0.75, 0.75, 0.8, 0.9, 1.1, 1.8, 3.2, 7.0],
-        16: [10.0, 4.0, 2.0, 1.2, 0.95, 0.85, 0.8, 0.75, 0.75, 0.8, 0.85, 0.95, 1.2, 2.0, 4.0, 10.0]
+        8:  [3.00, 2.00, 1.40, 1.00, 0.80, 1.00, 1.40, 2.00, 3.00],
+        10: [4.50, 2.80, 1.80, 1.20, 0.90, 0.80, 0.90, 1.20, 1.80, 2.80, 4.50],
+        12: [6.00, 3.60, 2.20, 1.30, 1.00, 0.85, 0.75, 0.85, 1.00, 1.30, 2.20, 3.60, 6.00],
+        14: [8.50, 4.80, 2.80, 1.60, 1.10, 0.90, 0.80, 0.75, 0.80, 0.90, 1.10, 1.60, 2.80, 4.80, 8.50],
+        16: [12.00, 6.50, 3.60, 2.00, 1.20, 1.00, 0.90, 0.80, 0.75, 0.80, 0.90, 1.00, 1.20, 2.00, 3.60, 6.50, 12.00]
       },
       high: {
-        8:  [5.0, 2.5, 1.2, 0.6, 0.6, 1.2, 2.5, 5.0],
-        10: [10.0, 3.6, 1.5, 0.7, 0.6, 0.6, 0.7, 1.5, 3.6, 10.0],
-        12: [18.0, 6.0, 2.0, 1.0, 0.7, 0.55, 0.55, 0.7, 1.0, 2.0, 6.0, 18.0],
-        14: [35.0, 9.0, 3.0, 1.3, 0.8, 0.6, 0.5, 0.5, 0.6, 0.8, 1.3, 3.0, 9.0, 35.0],
-        16: [76.0, 14.0, 4.0, 1.6, 0.9, 0.7, 0.55, 0.45, 0.45, 0.55, 0.7, 0.9, 1.6, 4.0, 14.0, 76.0]
+        8:  [6.00, 3.20, 1.80, 1.00, 0.60, 1.00, 1.80, 3.20, 6.00],
+        10: [12.00, 5.00, 2.40, 1.20, 0.70, 0.60, 0.70, 1.20, 2.40, 5.00, 12.00],
+        12: [24.00, 8.00, 3.60, 1.60, 1.00, 0.70, 0.55, 0.70, 1.00, 1.60, 3.60, 8.00, 24.00],
+        14: [45.00, 14.00, 5.00, 2.20, 1.20, 0.80, 0.60, 0.50, 0.60, 0.80, 1.20, 2.20, 5.00, 14.00, 45.00],
+        16: [90.00, 20.00, 7.50, 3.20, 1.60, 1.00, 0.75, 0.60, 0.50, 0.60, 0.75, 1.00, 1.60, 3.20, 7.50, 20.00, 90.00]
       }
-    };
+    };;
 
     // === Estado do jogo ===
     const rowsSelect = document.getElementById('rows');
@@ -232,54 +232,41 @@
     window.addEventListener('resize', resize);
 
     function rebuildGeometry() {
-      const rows = Number(rowsSelect.value);
-      pegs = [];
-      slots = [];
-      const usableW = W - board.left - board.right;
-      const usableH = H - board.top - board.bottom;
+  const rows = Number(rowsSelect.value);
+  pegs = [];
+  slots = [];
+  const usableW = W - board.left - board.right;
+  const usableH = H - board.top - board.bottom;
 
-      const rowStep = usableH / rows;
-      const colStep = Math.min(usableW / (rows+1), 40);
+  const rowStep = usableH / rows;
+  const colStep = Math.min(usableW / (rows+1), 40);
 
-      const centerX = W / 2;
+  const centerX = W / 2;
 
-      for (let r = 0; r < rows; r++) {
-        const y = board.top + r * rowStep + 30;
-        const count = r + 1;
-        const totalWidth = (count - 1) * colStep;
-        const startX = centerX - totalWidth / 2;
+  for (let r = 0; r < rows; r++) {
+    const y = board.top + r * rowStep + 30;
+    const count = r + 1;
+    const totalWidth = (count - 1) * colStep;
+    const startX = centerX - totalWidth / 2;
 
-        for (let c = 0; c < count; c++) {
-          const x = startX + c * colStep;
-          pegs.push({x, y, r: board.pegRadius});
-        }
-      }
-
-      // slots (sempre rows+1 caçapas)
-      const baseY = board.top + usableH + 20;
-      slots.length = 0;
-      for (let i = 0; i < rows+1; i++) {
-        const x0 = centerX - (rows/2) * colStep + i * colStep - colStep/2;
-        const x1 = x0 + colStep;
-        slots.push({x0, x1, y: baseY});
-      }
+    for (let c = 0; c < count; c++) {
+      const x = startX + c * colStep;
+      pegs.push({x, y, r: board.pegRadius});
     }
+  }
 
-      // slots
-      const slotsCount = rows; // número de "vãos" entre a última linha de pinos + bordas => rows slots
-      const baseY = board.top + usableH + 20;
-      const slotStep = colStep;
-      const startSlotX = offsetX - slotStep/2;
-      slots.length = 0;
-      for (let i = 0; i < slotsCount; i++) {
-        const x0 = startSlotX + i * slotStep;
-        const x1 = x0 + slotStep;
-        slots.push({x0, x1, y: baseY});
-      }
-    }
+  // slots (sempre rows+1 caçapas)
+  const baseY = board.top + usableH + 20;
+  slots.length = 0;
+  for (let i = 0; i < rows + 1; i++) {
+    const x0 = centerX - (rows / 2) * colStep + i * colStep - colStep / 2;
+    const x1 = x0 + colStep;
+    slots.push({ x0, x1, y: baseY });
+  }
+}
 
-    // === Física simples de círculos e paredes ===
-    function spawnBall() {
+
+function spawnBall() {
       const rows = Number(rowsSelect.value);
       const usableW = W - board.left - board.right;
       const offsetX = (W - usableW) / 2;

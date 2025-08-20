@@ -350,8 +350,13 @@ function spawnBall() {
             const s = slots[i];
             if (b.x >= s.x0 && b.x < s.x1) {
               b.slotIndex = i;
-              break;
+                            break;
             }
+          }
+          // Correção: absorver nas bordas caso saia para fora
+          if (b.slotIndex < 0) {
+            if (b.x < slots[0].x0) b.slotIndex = 0;
+            if (b.x > slots[slots.length-1].x1) b.slotIndex = slots.length-1;
           }
         }
 

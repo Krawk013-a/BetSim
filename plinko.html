@@ -202,16 +202,16 @@
     const ctx = canvas.getContext('2d');
     let W, H, scale;
     const board = {
-      left: 40,
+      left: 400,
       right: 40,
       top: 40,
-      bottom: 120,   // espaço para as caçapas
-      pegRadius: 5,
-      ballRadius: 7,
+      bottom: 220,   // espaço para as caçapas
+      pegRadius: 4,
+      ballRadius: 8,
       gravity: 600, // px/s^2
       restitution: 0.45,
-      airFriction: 0.0012,
-      wallFriction: 0.02
+      airFriction: 0.012,
+      wallFriction: 0.2
     };
 
     // Dinâmica
